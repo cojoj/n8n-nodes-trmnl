@@ -1,0 +1,56 @@
+{
+	"name": "n8n-nodes-trmnl",
+	"version": "0.1.0",
+	"description": "n8n community node for sending workflow data to TRMNL private plugins.",
+	"license": "MIT",
+	"homepage": "https://github.com/cojoj/n8n-nodes-trmnl",
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n",
+		"trmnl",
+		"e-ink",
+		"automation"
+	],
+	"author": {
+		"name": "Mateusz Zając",
+		"email": "mateusz@cojoj.pl"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/cojoj/n8n-nodes-trmnl.git"
+	},
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"dev": "n8n-node dev",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"release": "n8n-node release",
+		"prepublishOnly": "n8n-node prerelease",
+		"test": "npm run build && node --test test/*.test.mjs"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"strict": true,
+		"credentials": [
+			"dist/credentials/TrmnlPrivatePluginApi.credentials.js",
+			"dist/credentials/TrmnlAccountApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/Trmnl/Trmnl.node.js"
+		]
+	},
+	"devDependencies": {
+		"@n8n/node-cli": "0.32.1",
+		"eslint": "9.29.0",
+		"prettier": "3.6.2",
+		"release-it": "^19.0.4",
+		"typescript": "5.9.2"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}
