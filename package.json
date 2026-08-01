@@ -1,6 +1,7 @@
 {
 	"name": "n8n-nodes-trmnl",
 	"version": "0.1.0",
+	"packageManager": "pnpm@11.18.0",
 	"description": "n8n community node for sending workflow data to TRMNL private plugins.",
 	"license": "MIT",
 	"homepage": "https://github.com/cojoj/n8n-nodes-trmnl",
@@ -27,7 +28,7 @@
 		"lint:fix": "n8n-node lint --fix",
 		"release": "n8n-node release",
 		"prepublishOnly": "n8n-node prerelease",
-		"test": "npm run build && node --test test/*.test.mjs"
+		"test": "pnpm build && node --test test/*.test.mjs"
 	},
 	"files": [
 		"dist"

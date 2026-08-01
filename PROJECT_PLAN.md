@@ -126,7 +126,7 @@ Potential later resource: `Image Plugin`
 Scaffold with the official n8n node tooling:
 
 ```bash
-npm create @n8n/node@latest n8n-nodes-trmnl -- --template programmatic/example
+pnpm create @n8n/node@latest n8n-nodes-trmnl -- --template programmatic/example
 ```
 
 Current versions checked on 2026-05-31:
@@ -155,9 +155,9 @@ Use `this.helpers.httpRequestWithAuthentication.call(...)` for authenticated acc
   - merge variables JSON validation
   - payload byte-size limits
 - Unit-test operation routing with mocked HTTP responses.
-- Run `npm run lint`.
-- Run `npm run build`.
-- Run `npm run dev` and test inside local n8n at `localhost:5678`.
+- Run `pnpm lint`.
+- Run `pnpm build`.
+- Run `pnpm dev` and test inside local n8n at `localhost:5678`.
 - Add manual test workflows under `examples/`.
 
 ## OSS Readiness

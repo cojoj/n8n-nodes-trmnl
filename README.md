@@ -11,8 +11,8 @@ Follow n8n's [community node installation guide](https://docs.n8n.io/integration
 For local development:
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Then open n8n at `http://localhost:5678`.
@@ -47,9 +47,9 @@ TRMNL account API docs: https://docs.trmnl.com/go/private-api/account
 ## Development Checks
 
 ```bash
-npm test
-npm run build
-npm run lint
+pnpm test
+pnpm build
+pnpm lint
 ```
 
 This project keeps n8n strict mode enabled for community-node compatibility.
