@@ -10,7 +10,10 @@ export class TrmnlPrivatePluginApi implements ICredentialType {
 
 	displayName = 'TRMNL Private Plugin API';
 
-	icon = 'file:../nodes/Trmnl/trmnl.svg' as const;
+	icon = {
+		light: 'file:../nodes/Trmnl/trmnl.svg',
+		dark: 'file:../nodes/Trmnl/trmnl.dark.svg',
+	} as const;
 
 	documentationUrl = 'https://docs.trmnl.com/go/private-plugins/webhooks';
 
