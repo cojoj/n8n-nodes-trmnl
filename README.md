@@ -112,6 +112,8 @@ TRMNL's webhook docs: https://docs.trmnl.com/go/private-plugins/webhooks
 
 Stores a TRMNL account API key for authenticated API features. The first MVP registers this credential for future account/device/plugin-setting operations.
 
+See the [Account API roadmap](docs/account-api-roadmap.md) for the proposed read-only discovery, plugin-setting content, playlist, and device slices.
+
 TRMNL account API docs: https://docs.trmnl.com/go/private-api/account
 
 ## Development Checks
