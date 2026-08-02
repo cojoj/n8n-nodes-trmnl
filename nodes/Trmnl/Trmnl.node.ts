@@ -11,7 +11,9 @@ import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workf
 
 import {
 	DEFAULT_PAYLOAD_LIMIT_BYTES,
+	DEFAULT_STREAM_LIMIT,
 	TRMNL_PLUS_PAYLOAD_LIMIT_BYTES,
+	assignmentsToJsonObject,
 	buildPrivatePluginPayload,
 	getJsonSizeBytes,
 	normalizePrivatePluginEndpoint,
@@ -30,7 +32,7 @@ export class Trmnl implements INodeType {
 		group: ['output'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Send workflow data to TRMNL private plugins',
+		description: 'Send workflow data to TRMNL Private Plugins',
 		defaults: {
 			name: 'TRMNL',
 		},
@@ -114,24 +116,76 @@ export class Trmnl implements INodeType {
 				default: 'render',
 			},
 			{
-				displayName: 'Merge Variables',
-				name: 'mergeVariables',
-				type: 'json',
-				required: true,
-				default:
-					'{\n  "title": "Hello from n8n",\n  "message": "TRMNL webhook test works from local n8n.",\n  "items": [\n    {\n      "label": "Status",\n      "value": "Connected"\n    }\n  ]\n}',
+				displayName: 'Specify Merge Variables',
+				name: 'mergeVariablesMode',
+				type: 'options',
+				noDataExpression: true,
+				options: [
+					{
+						name: 'Using Fields Below',
+						value: 'fields',
+						description: 'Add merge variables one by one',
+					},
+					{
+						name: 'Using JSON',
+						value: 'json',
+						description: 'Provide all merge variables as one JSON object',
+					},
+				],
+				default: 'json',
 				displayOptions: {
 					show: {
 						resource: ['privatePlugin'],
 						operation: ['setContent'],
 					},
 				},
+				description: 'How to define the merge variables sent to TRMNL',
+			},
+			{
+				displayName: 'Merge Variables',
+				name: 'mergeVariableAssignments',
+				type: 'assignmentCollection',
+				default: { assignments: [] },
+				typeOptions: {
+					assignment: {
+						defaultType: 'string',
+					},
+				},
+				displayOptions: {
+					show: {
+						resource: ['privatePlugin'],
+						operation: ['setContent'],
+						mergeVariablesMode: ['fields'],
+					},
+				},
 				description:
-					'JSON object available to the TRMNL Private Plugin markup editor as Liquid merge variables',
+					'Data to store for the Private Plugin. Each name becomes a top-level Liquid variable.',
+			},
+			{
+				displayName: 'JSON',
+				name: 'mergeVariables',
+				type: 'json',
+				required: true,
+				default:
+					'{\n  "title": "Hello from n8n",\n  "message": "TRMNL webhook test works from local n8n.",\n  "items": [\n    {\n      "label": "Status",\n      "value": "Connected"\n    }\n  ]\n}',
+				typeOptions: {
+					rows: 10,
+				},
+				displayOptions: {
+					show: {
+						resource: ['privatePlugin'],
+						operation: ['setContent'],
+					},
+					hide: {
+						mergeVariablesMode: ['fields'],
+					},
+				},
+				description:
+					'Data to store for the Private Plugin. Each top-level key becomes a Liquid variable in the TRMNL markup editor.',
 			},
 			{
 				displayName:
-					'TRMNL devices are pull-based: this sends content to TRMNL, then the device shows it on its next refresh or check-in.',
+					'TRMNL displays the new content on the device\'s next scheduled or manual refresh.',
 				name: 'refreshBehaviorNotice',
 				type: 'notice',
 				default: '',
@@ -141,6 +195,56 @@ export class Trmnl implements INodeType {
 						operation: ['setContent'],
 					},
 				},
+			},
+			{
+				displayName: 'Merge Strategy',
+				name: 'mergeStrategy',
+				type: 'options',
+				options: [
+					{
+						name: 'Deep Merge',
+						value: 'deep_merge',
+						description: 'Update nested values while preserving other stored values',
+					},
+					{
+						name: 'Replace',
+						value: 'replace',
+						description: 'Replace all stored merge variables with this payload',
+					},
+					{
+						name: 'Stream',
+						value: 'stream',
+						description:
+							'Append values to top-level arrays and trim older entries; include every top-level key to retain',
+					},
+				],
+				default: 'replace',
+				displayOptions: {
+					show: {
+						resource: ['privatePlugin'],
+						operation: ['setContent'],
+					},
+				},
+				description:
+					'How to combine this payload with the merge variables already stored by TRMNL',
+			},
+			{
+				displayName: 'Stream Limit',
+				name: 'streamLimit',
+				type: 'number',
+				default: DEFAULT_STREAM_LIMIT,
+				displayOptions: {
+					show: {
+						resource: ['privatePlugin'],
+						operation: ['setContent'],
+						mergeStrategy: ['stream'],
+					},
+				},
+				typeOptions: {
+					minValue: 1,
+				},
+				description:
+					'Maximum number of values retained in each top-level array included in the Stream payload',
 			},
 			{
 				displayName: 'Options',
@@ -156,28 +260,6 @@ export class Trmnl implements INodeType {
 				},
 				options: [
 					{
-						displayName: 'Merge Strategy',
-						name: 'mergeStrategy',
-						type: 'options',
-						options: [
-							{
-								name: 'Replace',
-								value: 'replace',
-							},
-							{
-								name: 'Deep Merge',
-								value: 'deep_merge',
-							},
-							{
-								name: 'Stream',
-								value: 'stream',
-							},
-						],
-						default: 'replace',
-						description:
-							'How TRMNL should combine this payload with existing merge variables. Stream appends top-level arrays.',
-					},
-					{
 						displayName: 'Payload Limit Bytes',
 						name: 'payloadLimitBytes',
 						type: 'number',
@@ -187,22 +269,13 @@ export class Trmnl implements INodeType {
 						},
 						description: `Maximum request body size before this node fails locally. TRMNL regular limit is ${DEFAULT_PAYLOAD_LIMIT_BYTES} bytes; TRMNL+ is ${TRMNL_PLUS_PAYLOAD_LIMIT_BYTES} bytes.`,
 					},
-					{
-						displayName: 'Stream Limit',
-						name: 'streamLimit',
-						type: 'number',
-						default: 10,
-						typeOptions: {
-							minValue: 1,
-						},
-						description: 'Maximum number of items TRMNL should keep in streamed arrays',
-					},
 				],
 			},
 			{
-				displayName: 'Markup',
+				displayName: 'Liquid Markup',
 				name: 'markup',
 				type: 'string',
+				noDataExpression: true,
 				typeOptions: {
 					rows: 8,
 				},
@@ -214,21 +287,75 @@ export class Trmnl implements INodeType {
 						operation: ['render'],
 					},
 				},
-				description: 'Liquid markup to render',
+				description:
+					'Liquid markup sent to TRMNL unchanged. Use Variables below for dynamic n8n data.',
 			},
 			{
-				displayName: 'Variables',
-				name: 'variables',
-				type: 'json',
-				required: true,
-				default: '{\n  "name": "World"\n}',
+				displayName: 'Specify Variables',
+				name: 'variablesMode',
+				type: 'options',
+				noDataExpression: true,
+				options: [
+					{
+						name: 'Using Fields Below',
+						value: 'fields',
+						description: 'Add Liquid variables one by one',
+					},
+					{
+						name: 'Using JSON',
+						value: 'json',
+						description: 'Provide all Liquid variables as one JSON object',
+					},
+				],
+				default: 'json',
 				displayOptions: {
 					show: {
 						resource: ['markup'],
 						operation: ['render'],
 					},
 				},
-				description: 'JSON object to use while rendering the markup',
+				description: 'How to define the variables available to the Liquid markup',
+			},
+			{
+				displayName: 'Variables',
+				name: 'variableAssignments',
+				type: 'assignmentCollection',
+				default: { assignments: [] },
+				typeOptions: {
+					assignment: {
+						defaultType: 'string',
+					},
+				},
+				displayOptions: {
+					show: {
+						resource: ['markup'],
+						operation: ['render'],
+						variablesMode: ['fields'],
+					},
+				},
+				description:
+					'Each name becomes a variable available to the Liquid markup. Values support n8n expressions.',
+			},
+			{
+				displayName: 'JSON',
+				name: 'variables',
+				type: 'json',
+				required: true,
+				default: '{\n  "name": "World"\n}',
+				typeOptions: {
+					rows: 6,
+				},
+				displayOptions: {
+					show: {
+						resource: ['markup'],
+						operation: ['render'],
+					},
+					hide: {
+						variablesMode: ['fields'],
+					},
+				},
+				description:
+					'Object available to the Liquid markup while TRMNL renders it. n8n expressions are supported here.',
 			},
 		],
 	};
@@ -298,15 +425,43 @@ async function setPrivatePluginContent(
 		this,
 		itemIndex,
 	);
+	const nodeParameters = this.getNode().parameters;
+	const mergeVariablesMode = Object.prototype.hasOwnProperty.call(
+		nodeParameters,
+		'mergeVariablesMode',
+	)
+		? (this.getNodeParameter('mergeVariablesMode', itemIndex) as string)
+		: 'json';
 	const mergeVariables = unwrapValidationResult(
-		parseJsonObject(
-			this.getNodeParameter('mergeVariables', itemIndex),
-			'Merge Variables',
-		),
+		mergeVariablesMode === 'fields'
+			? assignmentsToJsonObject(
+					this.getNodeParameter('mergeVariableAssignments', itemIndex, { assignments: [] }),
+				)
+			: parseJsonObject(
+					this.getNodeParameter('mergeVariables', itemIndex),
+					'Merge Variables',
+				),
 		this,
 		itemIndex,
 	);
-	const options = this.getNodeParameter('options', itemIndex, {}) as IDataObject;
+	const options = {
+		...(this.getNodeParameter('options', itemIndex, {}) as IDataObject),
+	};
+	// Workflows created before these controls became top-level fields stored them in Options.
+	if (Object.prototype.hasOwnProperty.call(nodeParameters, 'mergeStrategy')) {
+		const mergeStrategy = this.getNodeParameter('mergeStrategy', itemIndex) as string;
+		options.mergeStrategy = mergeStrategy;
+
+		if (mergeStrategy === 'stream') {
+			options.streamLimit = this.getNodeParameter(
+				'streamLimit',
+				itemIndex,
+				DEFAULT_STREAM_LIMIT,
+			) as number;
+		} else {
+			delete options.streamLimit;
+		}
+	}
 	const body = unwrapValidationResult(
 		buildPrivatePluginPayload(mergeVariables, options),
 		this,
@@ -339,10 +494,14 @@ async function setPrivatePluginContent(
 	);
 
 	return {
+		operation: 'setContent',
 		success: true,
 		payloadSizeBytes,
+		payloadLimitBytes,
 		mergeVariables,
 		mergeStrategy: body.merge_strategy ?? 'replace',
+		...(body.stream_limit === undefined ? {} : { streamLimit: body.stream_limit }),
+		deviceUpdate: 'next_refresh',
 		response: normalizeResponse(response),
 	};
 }
@@ -371,6 +530,7 @@ async function getPrivatePluginContent(
 	);
 
 	return {
+		operation: 'getContent',
 		success: true,
 		response: normalizeResponse(response),
 	};
@@ -378,8 +538,17 @@ async function getPrivatePluginContent(
 
 async function renderMarkup(this: IExecuteFunctions, itemIndex: number): Promise<IDataObject> {
 	const markup = this.getNodeParameter('markup', itemIndex) as string;
+	const nodeParameters = this.getNode().parameters;
+	const variablesMode = Object.prototype.hasOwnProperty.call(nodeParameters, 'variablesMode')
+		? (this.getNodeParameter('variablesMode', itemIndex) as string)
+		: 'json';
 	const variables = unwrapValidationResult(
-		parseJsonObject(this.getNodeParameter('variables', itemIndex), 'Variables'),
+		variablesMode === 'fields'
+			? assignmentsToJsonObject(
+					this.getNodeParameter('variableAssignments', itemIndex, { assignments: [] }),
+					'Variables',
+				)
+			: parseJsonObject(this.getNodeParameter('variables', itemIndex), 'Variables'),
 		this,
 		itemIndex,
 	);
@@ -397,7 +566,9 @@ async function renderMarkup(this: IExecuteFunctions, itemIndex: number): Promise
 	} as IHttpRequestOptions);
 
 	return {
+		operation: 'render',
 		success: true,
+		variables,
 		response: normalizeResponse(response),
 	};
 }

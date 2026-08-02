@@ -1,4 +1,5 @@
-import type { IDataObject } from 'n8n-workflow';
+import type { AssignmentCollectionValue, FieldType, IDataObject } from 'n8n-workflow';
+import { validateFieldType } from 'n8n-workflow';
 
 const CUSTOM_PLUGIN_PATH = '/api/custom_plugins/';
 const DEFAULT_TRMNL_BASE_URL = 'https://trmnl.com';
@@ -66,6 +67,58 @@ export function parseJsonObject(value: unknown, fieldName: string): ValidationRe
 	}
 
 	return { ok: true, value: parsed as IDataObject };
+}
+
+export function assignmentsToJsonObject(
+	value: unknown,
+	fieldName = 'Merge Variables',
+): ValidationResult<IDataObject> {
+	const assignments = (value as Partial<AssignmentCollectionValue> | null)?.assignments;
+
+	if (!Array.isArray(assignments)) {
+		return { ok: false, error: `${fieldName} fields are invalid.` };
+	}
+
+	const mergeVariables: IDataObject = {};
+
+	for (const assignment of assignments) {
+		const name = typeof assignment?.name === 'string' ? assignment.name.trim() : '';
+
+		if (!name) {
+			return { ok: false, error: `Each ${fieldName} field must have a name.` };
+		}
+
+		if (assignment.value === null || assignment.value === undefined) {
+			mergeVariables[name] = null;
+			continue;
+		}
+
+		const type = (assignment.type ?? 'string') as FieldType;
+		let assignmentValue: unknown = assignment.value;
+
+		if (type === 'string') {
+			assignmentValue =
+				typeof assignmentValue === 'object'
+					? JSON.stringify(assignmentValue)
+					: String(assignmentValue);
+		}
+
+		let validationResult;
+
+		try {
+			validationResult = validateFieldType(name, assignmentValue, type);
+		} catch {
+			return { ok: false, error: `${fieldName} field "${name}" has an unsupported type.` };
+		}
+
+		if (!validationResult.valid) {
+			return { ok: false, error: validationResult.errorMessage };
+		}
+
+		mergeVariables[name] = (validationResult.newValue ?? null) as IDataObject[string];
+	}
+
+	return { ok: true, value: mergeVariables };
 }
 
 export function getJsonSizeBytes(value: unknown): number {

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+	assignmentsToJsonObject,
 	buildPrivatePluginPayload,
 	getJsonSizeBytes,
 	normalizePrivatePluginEndpoint,
@@ -44,6 +45,57 @@ describe('TRMNL payload helpers', () => {
 			ok: false,
 			error: 'Merge Variables must be a JSON object.',
 		});
+	});
+
+	it('builds merge variables from typed field assignments', () => {
+		assert.deepEqual(
+			assignmentsToJsonObject({
+				assignments: [
+					{ name: 'title', value: 42, type: 'string' },
+					{ name: 'count', value: '42', type: 'number' },
+					{ name: 'enabled', value: 'false', type: 'boolean' },
+					{ name: 'items', value: '["one", "two"]', type: 'array' },
+					{ name: 'details', value: '{"nested":true}', type: 'object' },
+				],
+			}),
+			{
+				ok: true,
+				value: {
+					title: '42',
+					count: 42,
+					enabled: false,
+					items: ['one', 'two'],
+					details: { nested: true },
+				},
+			},
+		);
+	});
+
+	it('requires field assignment names', () => {
+		assert.deepEqual(
+			assignmentsToJsonObject({
+				assignments: [{ name: ' ', value: 'Hello', type: 'string' }],
+			}),
+			{
+				ok: false,
+				error: 'Each Merge Variables field must have a name.',
+			},
+		);
+	});
+
+	it('uses the supplied field label in assignment errors', () => {
+		assert.deepEqual(
+			assignmentsToJsonObject(
+				{
+					assignments: [{ name: '', value: 'Hello', type: 'string' }],
+				},
+				'Variables',
+			),
+			{
+				ok: false,
+				error: 'Each Variables field must have a name.',
+			},
+		);
 	});
 
 	it('calculates UTF-8 JSON byte size', () => {
