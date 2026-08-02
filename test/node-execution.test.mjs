@@ -131,7 +131,7 @@ describe('TRMNL node execution', () => {
 				variablesMode: 'json',
 				variables: '{"name":"World"}',
 			},
-			httpResponse: { markup: 'Hello, World!' },
+			httpResponse: { data: 'Hello, World!' },
 		});
 
 		assert.deepEqual(requests, [
@@ -153,7 +153,49 @@ describe('TRMNL node execution', () => {
 			operation: 'render',
 			success: true,
 			variables: { name: 'World' },
-			response: { markup: 'Hello, World!' },
+			rendered: 'Hello, World!',
+			response: { data: 'Hello, World!' },
+		});
+	});
+
+	it('preserves the raw Markup response when surfacing an empty rendered value', async () => {
+		const { result } = await executeWith({
+			parameters: {
+				resource: 'markup',
+				operation: 'render',
+				markup: '',
+				variablesMode: 'json',
+				variables: '{}',
+			},
+			httpResponse: { data: '', warning: 'Empty markup' },
+		});
+
+		assert.deepEqual(result[0][0].json, {
+			operation: 'render',
+			success: true,
+			variables: {},
+			rendered: '',
+			response: { data: '', warning: 'Empty markup' },
+		});
+	});
+
+	it('keeps Markup responses without data unchanged under response', async () => {
+		const { result } = await executeWith({
+			parameters: {
+				resource: 'markup',
+				operation: 'render',
+				markup: 'Static text',
+				variablesMode: 'json',
+				variables: '{}',
+			},
+			httpResponse: { markup: 'Static text' },
+		});
+
+		assert.deepEqual(result[0][0].json, {
+			operation: 'render',
+			success: true,
+			variables: {},
+			response: { markup: 'Static text' },
 		});
 	});
 

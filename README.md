@@ -89,6 +89,8 @@ The node validates payload size locally before sending. The default limit is 2 K
 
 The **Liquid Markup** field is always sent to TRMNL unchanged, so Liquid tags such as `{{ title }}` are not interpreted as n8n expressions. Define dynamic data in **Variables** using n8n's fields editor or a JSON object, then reference those names from the Liquid markup.
 
+When TRMNL returns its rendered result in `data`, the node exposes that value as top-level `rendered` for convenient downstream use. The complete TRMNL response remains available under `response`.
+
 ## Example
 
 The repository includes a small verified dashboard example:

@@ -39,6 +39,8 @@ TRMNL markup uses Liquid variables, so an n8n merge variable named `title` appea
 
 For the node's **Markup** -> **Render** operation, enter this syntax in **Liquid Markup**. The field is sent to TRMNL unchanged and intentionally does not offer n8n's Expression mode. Under **Specify Variables**, choose **Using Fields Below** for typed name/value rows and n8n expressions, or **Using JSON** for nested data and complete object expressions.
 
+When TRMNL returns `{ "data": "Hello, World!" }`, the node output includes top-level `rendered: "Hello, World!"` and preserves the complete service payload under `response`.
+
 ## Create n8n Credentials
 
 1. In n8n, open **Credentials**.
