@@ -564,12 +564,16 @@ async function renderMarkup(this: IExecuteFunctions, itemIndex: number): Promise
 		},
 		json: true,
 	} as IHttpRequestOptions);
+	const normalizedResponse = normalizeResponse(response);
 
 	return {
 		operation: 'render',
 		success: true,
 		variables,
-		response: normalizeResponse(response),
+		...(Object.prototype.hasOwnProperty.call(normalizedResponse, 'data')
+			? { rendered: normalizedResponse.data }
+			: {}),
+		response: normalizedResponse,
 	};
 }
 
