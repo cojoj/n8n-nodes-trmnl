@@ -109,3 +109,5 @@ Defaults:
 After n8n sends data, the TRMNL web preview updates first. The physical device updates when it asks TRMNL for content.
 
 For testing, use **Force Refresh** from the plugin settings page, then wait for the device's next check-in or use the device controls according to TRMNL's refresh rules.
+
+For release-candidate acceptance, work through the [manual test matrix](manual-test-matrix.md). It separates offline checks, webhook acceptance, stored-data verification, TRMNL Activity/preview evidence, and the physical-device refresh.

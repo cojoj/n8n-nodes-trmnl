@@ -124,6 +124,8 @@ pnpm pack --dry-run
 
 This project keeps n8n strict mode enabled for community-node compatibility.
 
+Use [docs/manual-test-matrix.md](docs/manual-test-matrix.md) for live release-candidate checks across n8n, the Private Plugin webhook, TRMNL Activity/preview, and a physical device.
+
 ## Device Refresh Behavior
 
 The webhook updates TRMNL's server-side data. The physical device updates when it checks in and asks TRMNL for content.

@@ -40,6 +40,13 @@ describe('TRMNL payload helpers', () => {
 		});
 	});
 
+	it('rejects invalid JSON syntax', () => {
+		assert.deepEqual(parseJsonObject('{"title":}', 'Merge Variables'), {
+			ok: false,
+			error: 'Merge Variables must contain valid JSON.',
+		});
+	});
+
 	it('rejects JSON arrays', () => {
 		assert.deepEqual(parseJsonObject('[]', 'Merge Variables'), {
 			ok: false,
