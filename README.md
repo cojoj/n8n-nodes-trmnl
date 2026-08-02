@@ -106,13 +106,13 @@ Use this as the first smoke test after installing the node.
 
 ### TRMNL Private Plugin API
 
-Use the Webhook URL from a saved TRMNL Private Plugin, or paste only the Plugin Setting UUID.
+Use the Webhook URL from a saved TRMNL Private Plugin configured with the **Webhook** strategy, or paste only the Plugin Setting UUID. The credential test applies the same URL/UUID normalization as Private Plugin node operations and performs a read-only `GET` request.
 
 TRMNL's webhook docs: https://docs.trmnl.com/go/private-plugins/webhooks
 
 ### TRMNL Account API
 
-Stores a TRMNL account API key for authenticated API features. The first MVP registers this credential for future account/device/plugin-setting operations.
+Stores a `user_` TRMNL Account API key for authenticated API features. TRMNL requires a developer license for this API. No current node operation uses this credential; it remains registered for future account, device, and plugin-management operations.
 
 See the [Account API roadmap](docs/account-api-roadmap.md) for the proposed read-only discovery, plugin-setting content, playlist, and device slices.
 

@@ -48,7 +48,7 @@ When TRMNL returns `{ "data": "Hello, World!" }`, the node output includes top-l
 3. Paste either the full Webhook URL or only the Plugin UUID.
 4. Save the credential.
 
-The credential test performs a `GET` request to the Private Plugin webhook endpoint.
+The credential test trims and validates the value using the same endpoint normalization as Private Plugin node operations, then performs a read-only `GET` request to the resulting webhook endpoint. Do not use a `user_` Account API key here; no current node operation uses the separate **TRMNL Account API** credential.
 
 ## Build the Workflow
 
