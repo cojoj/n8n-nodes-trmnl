@@ -10,6 +10,9 @@ import type {
 import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import {
+	DEFAULT_PAYLOAD_LIMIT_BYTES,
+	TRMNL_PLUS_PAYLOAD_LIMIT_BYTES,
+	buildPrivatePluginPayload,
 	getJsonSizeBytes,
 	normalizePrivatePluginEndpoint,
 	parseJsonObject,
@@ -115,14 +118,29 @@ export class Trmnl implements INodeType {
 				name: 'mergeVariables',
 				type: 'json',
 				required: true,
-				default: '{\n  "title": "Daily Brief",\n  "items": []\n}',
+				default:
+					'{\n  "title": "Hello from n8n",\n  "message": "TRMNL webhook test works from local n8n.",\n  "items": [\n    {\n      "label": "Status",\n      "value": "Connected"\n    }\n  ]\n}',
 				displayOptions: {
 					show: {
 						resource: ['privatePlugin'],
 						operation: ['setContent'],
 					},
 				},
-				description: 'JSON object available to the TRMNL Private Plugin markup editor',
+				description:
+					'JSON object available to the TRMNL Private Plugin markup editor as Liquid merge variables',
+			},
+			{
+				displayName:
+					'TRMNL devices are pull-based: this sends content to TRMNL, then the device shows it on its next refresh or check-in.',
+				name: 'refreshBehaviorNotice',
+				type: 'notice',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['privatePlugin'],
+						operation: ['setContent'],
+					},
+				},
 			},
 			{
 				displayName: 'Options',
@@ -156,17 +174,18 @@ export class Trmnl implements INodeType {
 							},
 						],
 						default: 'replace',
-						description: 'How TRMNL should combine this payload with existing merge variables',
+						description:
+							'How TRMNL should combine this payload with existing merge variables. Stream appends top-level arrays.',
 					},
 					{
 						displayName: 'Payload Limit Bytes',
 						name: 'payloadLimitBytes',
 						type: 'number',
-						default: 2048,
+						default: DEFAULT_PAYLOAD_LIMIT_BYTES,
 						typeOptions: {
 							minValue: 1,
 						},
-						description: 'Maximum request body size before this node fails locally',
+						description: `Maximum request body size before this node fails locally. TRMNL regular limit is ${DEFAULT_PAYLOAD_LIMIT_BYTES} bytes; TRMNL+ is ${TRMNL_PLUS_PAYLOAD_LIMIT_BYTES} bytes.`,
 					},
 					{
 						displayName: 'Stream Limit',
@@ -288,22 +307,14 @@ async function setPrivatePluginContent(
 		itemIndex,
 	);
 	const options = this.getNodeParameter('options', itemIndex, {}) as IDataObject;
-	const mergeStrategy = (options.mergeStrategy as string | undefined) ?? 'replace';
-
-	const body: IDataObject = {
-		merge_variables: mergeVariables,
-	};
-
-	if (mergeStrategy !== 'replace') {
-		body.merge_strategy = mergeStrategy;
-	}
-
-	if (mergeStrategy === 'stream') {
-		body.stream_limit = options.streamLimit ?? 10;
-	}
+	const body = unwrapValidationResult(
+		buildPrivatePluginPayload(mergeVariables, options),
+		this,
+		itemIndex,
+	);
 
 	const payloadSizeBytes = getJsonSizeBytes(body);
-	const payloadLimitBytes = Number(options.payloadLimitBytes ?? 2048);
+	const payloadLimitBytes = Number(options.payloadLimitBytes ?? DEFAULT_PAYLOAD_LIMIT_BYTES);
 
 	if (payloadSizeBytes > payloadLimitBytes) {
 		throw new NodeOperationError(
@@ -331,6 +342,7 @@ async function setPrivatePluginContent(
 		success: true,
 		payloadSizeBytes,
 		mergeVariables,
+		mergeStrategy: body.merge_strategy ?? 'replace',
 		response: normalizeResponse(response),
 	};
 }

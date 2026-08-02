@@ -1,0 +1,46 @@
+{
+  "name": "TRMNL Private Plugin Smoke Test",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "73138613-08f3-4f4c-a077-0112283255f3",
+      "name": "When clicking 'Execute workflow'"
+    },
+    {
+      "parameters": {
+        "mergeVariables": "{\n  \"title\": \"Hello from n8n\",\n  \"message\": \"TRMNL webhook test works from local n8n.\",\n  \"items\": [\n    {\n      \"label\": \"Status\",\n      \"value\": \"Connected\"\n    },\n    {\n      \"label\": \"Source\",\n      \"value\": \"n8n dev node\"\n    },\n    {\n      \"label\": \"Next\",\n      \"value\": \"Build richer actions\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "CUSTOM.trmnl",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "6d0debcf-fdd0-46cb-8e1a-2b1aa29c17df",
+      "name": "Set private plugin content"
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [
+        [
+          {
+            "node": "Set private plugin content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

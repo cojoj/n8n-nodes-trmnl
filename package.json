@@ -31,7 +31,13 @@
 		"test": "pnpm build && node --test test/*.test.mjs"
 	},
 	"files": [
-		"dist"
+		"dist/**/*.d.ts",
+		"dist/**/*.js",
+		"dist/**/*.js.map",
+		"dist/**/*.json",
+		"dist/**/*.svg",
+		"docs",
+		"examples"
 	],
 	"n8n": {
 		"n8nNodesApiVersion": 1,

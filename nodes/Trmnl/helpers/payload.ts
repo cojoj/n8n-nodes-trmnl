@@ -3,6 +3,13 @@ import type { IDataObject } from 'n8n-workflow';
 const CUSTOM_PLUGIN_PATH = '/api/custom_plugins/';
 const DEFAULT_TRMNL_BASE_URL = 'https://trmnl.com';
 
+export const DEFAULT_PAYLOAD_LIMIT_BYTES = 2048;
+export const TRMNL_PLUS_PAYLOAD_LIMIT_BYTES = 5120;
+export const DEFAULT_STREAM_LIMIT = 10;
+
+const MERGE_STRATEGIES = ['replace', 'deep_merge', 'stream'] as const;
+
+type MergeStrategy = (typeof MERGE_STRATEGIES)[number];
 type ValidationResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
 export function normalizePrivatePluginEndpoint(
@@ -65,10 +72,64 @@ export function getJsonSizeBytes(value: unknown): number {
 	return Buffer.byteLength(JSON.stringify(value), 'utf8');
 }
 
+export function buildPrivatePluginPayload(
+	mergeVariables: IDataObject,
+	options: IDataObject = {},
+): ValidationResult<IDataObject> {
+	const mergeStrategy = getMergeStrategy(options.mergeStrategy);
+
+	if (!mergeStrategy.ok) {
+		return mergeStrategy;
+	}
+
+	const body: IDataObject = {
+		merge_variables: mergeVariables,
+	};
+
+	if (mergeStrategy.value !== 'replace') {
+		body.merge_strategy = mergeStrategy.value;
+	}
+
+	if (mergeStrategy.value === 'stream') {
+		const streamLimit = getPositiveInteger(options.streamLimit, 'Stream Limit');
+
+		if (!streamLimit.ok) {
+			return streamLimit;
+		}
+
+		body.stream_limit = streamLimit.value;
+	}
+
+	return { ok: true, value: body };
+}
+
 function parseJson(value: string, fieldName: string): ValidationResult<unknown> {
 	try {
 		return { ok: true, value: JSON.parse(value) as unknown };
 	} catch {
 		return { ok: false, error: `${fieldName} must contain valid JSON.` };
 	}
+}
+
+function getMergeStrategy(value: unknown): ValidationResult<MergeStrategy> {
+	const mergeStrategy = (value ?? 'replace') as string;
+
+	if (MERGE_STRATEGIES.includes(mergeStrategy as MergeStrategy)) {
+		return { ok: true, value: mergeStrategy as MergeStrategy };
+	}
+
+	return {
+		ok: false,
+		error: `Merge Strategy must be one of: ${MERGE_STRATEGIES.join(', ')}.`,
+	};
+}
+
+function getPositiveInteger(value: unknown, fieldName: string): ValidationResult<number> {
+	const parsedValue = Number(value ?? DEFAULT_STREAM_LIMIT);
+
+	if (!Number.isInteger(parsedValue) || parsedValue < 1) {
+		return { ok: false, error: `${fieldName} must be a positive integer.` };
+	}
+
+	return { ok: true, value: parsedValue };
 }

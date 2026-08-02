@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+	buildPrivatePluginPayload,
 	getJsonSizeBytes,
 	normalizePrivatePluginEndpoint,
 	parseJsonObject,
@@ -49,6 +50,72 @@ describe('TRMNL payload helpers', () => {
 		assert.equal(
 			getJsonSizeBytes({ text: 'zażółć' }),
 			Buffer.byteLength(JSON.stringify({ text: 'zażółć' }), 'utf8'),
+		);
+	});
+
+	it('builds a replace payload without an explicit merge strategy', () => {
+		assert.deepEqual(buildPrivatePluginPayload({ title: 'Hello' }), {
+			ok: true,
+			value: {
+				merge_variables: {
+					title: 'Hello',
+				},
+			},
+		});
+	});
+
+	it('builds a deep merge payload', () => {
+		assert.deepEqual(
+			buildPrivatePluginPayload(
+				{
+					sensor: {
+						temperature: 42,
+					},
+				},
+				{ mergeStrategy: 'deep_merge' },
+			),
+			{
+				ok: true,
+				value: {
+					merge_variables: {
+						sensor: {
+							temperature: 42,
+						},
+					},
+					merge_strategy: 'deep_merge',
+				},
+			},
+		);
+	});
+
+	it('builds a stream payload with a stream limit', () => {
+		assert.deepEqual(
+			buildPrivatePluginPayload(
+				{
+					temperatures: [40, 42],
+				},
+				{ mergeStrategy: 'stream', streamLimit: 10 },
+			),
+			{
+				ok: true,
+				value: {
+					merge_variables: {
+						temperatures: [40, 42],
+					},
+					merge_strategy: 'stream',
+					stream_limit: 10,
+				},
+			},
+		);
+	});
+
+	it('rejects invalid stream limits', () => {
+		assert.deepEqual(
+			buildPrivatePluginPayload({ temperatures: [42] }, { mergeStrategy: 'stream', streamLimit: 0 }),
+			{
+				ok: false,
+				error: 'Stream Limit must be a positive integer.',
+			},
 		);
 	});
 });

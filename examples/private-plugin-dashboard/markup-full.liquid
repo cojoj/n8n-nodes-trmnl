@@ -1,0 +1,28 @@
+<div class="view view--full">
+  <div class="layout layout--col layout--center gap--large">
+    <div class="text--center">
+      <div class="title">{{ title | default: "Hello from n8n" }}</div>
+      <div class="description">{{ message | default: "Waiting for TRMNL merge variables from n8n." }}</div>
+    </div>
+
+    {% if items %}
+      <div class="layout layout--col gap--small w--full">
+        {% for item in items limit: 5 %}
+          <div class="item">
+            <div class="content">
+              <div class="description">{{ item.label | default: item }}</div>
+              {% if item.value %}
+                <div class="label">{{ item.value }}</div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text--center">
+        <div class="label">Waiting for n8n payload</div>
+        <div class="description">Send title, message, and items from your workflow.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>

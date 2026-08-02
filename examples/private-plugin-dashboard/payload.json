@@ -1,0 +1,18 @@
+{
+  "title": "Hello from n8n",
+  "message": "TRMNL webhook test works from local n8n.",
+  "items": [
+    {
+      "label": "Status",
+      "value": "Connected"
+    },
+    {
+      "label": "Source",
+      "value": "n8n dev node"
+    },
+    {
+      "label": "Next",
+      "value": "Build richer actions"
+    }
+  ]
+}
