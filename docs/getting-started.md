@@ -37,6 +37,8 @@ TRMNL markup uses Liquid variables, so an n8n merge variable named `title` appea
 {{ title }}
 ```
 
+For the node's **Markup** -> **Render** operation, enter this syntax in **Liquid Markup**. The field is sent to TRMNL unchanged and intentionally does not offer n8n's Expression mode. Under **Specify Variables**, choose **Using Fields Below** for typed name/value rows and n8n expressions, or **Using JSON** for nested data and complete object expressions.
+
 ## Create n8n Credentials
 
 1. In n8n, open **Credentials**.
@@ -63,18 +65,25 @@ Option B: build it manually.
 4. Choose **Private Plugin**.
 5. Choose **Set Content**.
 6. Select your **TRMNL Private Plugin API** credential.
-7. Paste `examples/private-plugin-dashboard/payload.json` into **Merge Variables**.
+7. Set **Specify Merge Variables** to **Using JSON**, then paste `examples/private-plugin-dashboard/payload.json` into **JSON**.
 8. Execute the TRMNL node.
 
 Expected output:
 
 ```json
 {
+  "operation": "setContent",
   "success": true,
   "payloadSizeBytes": 238,
-  "mergeStrategy": "replace"
+  "payloadLimitBytes": 2048,
+  "mergeStrategy": "replace",
+  "deviceUpdate": "next_refresh"
 }
 ```
+
+The full output also echoes the submitted `mergeVariables` and includes TRMNL's webhook `response`, which makes it easier to inspect what was sent and what TRMNL accepted.
+
+For simpler payloads, choose **Using Fields Below** instead. Add each top-level Liquid variable as a name/value row, select its value type, and use n8n expressions where needed. Use **Using JSON** for deeply nested data, large arrays, or an entire object expression.
 
 ## Merge Strategies
 
@@ -82,7 +91,9 @@ The default strategy replaces the stored merge variables.
 
 Use **Deep Merge** when you want to update nested values without replacing the whole object.
 
-Use **Stream** when you want TRMNL to append incoming top-level array values and retain only the latest entries according to **Stream Limit**.
+Use **Stream** when you want TRMNL to append incoming top-level array values and retain only the latest entries according to **Stream Limit**. The limit appears only after you select **Stream**.
+
+Send every top-level key that the plugin should retain with each Stream update. Hosted TRMNL can remove stored keys that are omitted from the incoming Stream payload.
 
 ## Payload Limits
 

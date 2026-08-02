@@ -1,16 +1,34 @@
-# n8n-nodes-trmnl
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="nodes/Trmnl/trmnl.dark.svg">
+    <img src="nodes/Trmnl/trmnl.svg" width="88" height="88" alt="TRMNL glyph">
+  </picture>
+</p>
 
-This is an n8n community node for sending workflow data to [TRMNL](https://trmnl.com/) Private Plugins.
+<h1 align="center">n8n-nodes-trmnl</h1>
+
+<p align="center">
+  Send n8n workflow data to TRMNL Private Plugins.
+</p>
+
+<p align="center">
+  <a href="https://github.com/cojoj/n8n-nodes-trmnl/actions/workflows/ci.yml"><img src="https://github.com/cojoj/n8n-nodes-trmnl/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-171717" alt="MIT license"></a>
+</p>
+
+This is an independent n8n community node for sending workflow data to [TRMNL](https://trmnl.com/) Private Plugins.
 
 TRMNL devices are pull-based: n8n sends data to TRMNL, TRMNL renders the screen, and the device shows it on the next refresh. This node does not push directly to the hardware.
 
-## Status
+## Project Status
 
 This project is in an MVP state. The core loop has been validated with a real TRMNL Private Plugin and physical TRMNL device:
 
 ```text
 n8n workflow -> TRMNL node -> Private Plugin webhook -> TRMNL render -> device refresh
 ```
+
+The node uses TRMNL's official glyphs from its [Brand Assets](https://trmnl.com/brand) page. See [docs/brand-assets.md](docs/brand-assets.md) for provenance. This is an independent community project; TRMNL and n8n are trademarks of their respective owners.
 
 ## Installation
 
@@ -39,7 +57,7 @@ N8N_SECURE_COOKIE=false pnpm dev
 4. In n8n, create a **TRMNL Private Plugin API** credential.
 5. Add a **TRMNL** node to a workflow.
 6. Choose **Private Plugin** -> **Set Content**.
-7. Paste a JSON object into **Merge Variables**.
+7. Define **Merge Variables** using fields below or a JSON object.
 8. Execute the node.
 
 See [docs/getting-started.md](docs/getting-started.md) for the full walkthrough.
@@ -53,17 +71,23 @@ See [docs/getting-started.md](docs/getting-started.md) for the full walkthrough.
 
 `Set Content` accepts full webhook URLs or Plugin Setting UUIDs. UUIDs are normalized to `https://trmnl.com/api/custom_plugins/{uuid}`.
 
+Choose **Using Fields Below** for n8n's native name/value editor with typed values and expressions. Choose **Using JSON** for nested objects, arrays, or pasting a complete payload.
+
 `Set Content` supports TRMNL's webhook merge strategies:
 
 - **Replace**: Replace the stored merge variables.
 - **Deep Merge**: Merge nested object values into the current state.
 - **Stream**: Append incoming top-level array values and cap retained entries with **Stream Limit**.
 
+When using Stream, send every top-level key that the plugin should retain. Hosted TRMNL can remove stored keys omitted from a Stream update.
+
 The node validates payload size locally before sending. The default limit is 2 KB; TRMNL+ users can raise the node's payload limit to 5 KB.
 
 ### Markup
 
 - **Render**: Renders Liquid markup with variables using TRMNL's markup endpoint.
+
+The **Liquid Markup** field is always sent to TRMNL unchanged, so Liquid tags such as `{{ title }}` are not interpreted as n8n expressions. Define dynamic data in **Variables** using n8n's fields editor or a JSON object, then reference those names from the Liquid markup.
 
 ## Example
 
@@ -95,6 +119,7 @@ TRMNL account API docs: https://docs.trmnl.com/go/private-api/account
 ```bash
 pnpm test
 pnpm lint
+pnpm pack --dry-run
 ```
 
 This project keeps n8n strict mode enabled for community-node compatibility.
