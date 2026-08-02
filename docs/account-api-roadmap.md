@@ -14,12 +14,14 @@ Do not present this node as firmware, a TRMNL server replacement, or a way to pu
 
 ## Recommended Implementation Slices
 
+The first focused slice implements the read-only **Device > List** and **Device > Get** operations. The remaining discovery operations below are still roadmap items.
+
 ### 1. Account discovery and plugin-setting reads
 
 Implement this first as one read-only PR:
 
-- **Device > List** — `GET /api/devices`
-- **Device > Get** — `GET /api/devices/{id}`
+- **Device > List** — `GET /api/devices` (implemented)
+- **Device > Get** — `GET /api/devices/{id}` (implemented)
 - **Plugin Setting > List** — `GET /api/plugin_settings`, with the documented optional `plugin_id` filter
 - **Plugin Setting > Get Details** — `GET /api/plugin_settings/{uuid}/details`
 - **Plugin Setting > Get Data** — `GET /api/plugin_settings/{id-or-uuid}/data`

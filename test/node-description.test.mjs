@@ -13,6 +13,35 @@ describe('TRMNL node description', () => {
 		});
 	});
 
+	it('requires Account API credentials for Device operations', () => {
+		const { credentials, properties } = new Trmnl().description;
+		const accountCredential = credentials?.find(
+			(credential) => credential.name === 'trmnlAccountApi',
+		);
+
+		assert.ok(accountCredential);
+		assert.equal(accountCredential.required, true);
+		assert.deepEqual(accountCredential.displayOptions, {
+			show: {
+				resource: ['device'],
+			},
+		});
+
+		const resource = properties.find((property) => property.name === 'resource');
+		assert.ok(resource && 'options' in resource && resource.options);
+		assert.ok(resource.options.some((option) => option.value === 'device'));
+
+		const operation = properties.find(
+			(property) =>
+				property.name === 'operation' && property.displayOptions?.show?.resource?.includes('device'),
+		);
+		assert.ok(operation && 'options' in operation && operation.options);
+		assert.deepEqual(
+			operation.options.map((option) => option.value),
+			['get', 'list'],
+		);
+	});
+
 	it('shows Stream Limit only for the stream merge strategy', () => {
 		const { properties } = new Trmnl().description;
 		const mergeStrategy = properties.find((property) => property.name === 'mergeStrategy');

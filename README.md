@@ -8,7 +8,7 @@
 <h1 align="center">n8n-nodes-trmnl</h1>
 
 <p align="center">
-  Send n8n workflow data to TRMNL Private Plugins.
+  Send workflow data to TRMNL Private Plugins and discover account devices.
 </p>
 
 <p align="center">
@@ -64,6 +64,13 @@ See [docs/getting-started.md](docs/getting-started.md) for the full walkthrough.
 
 ## Operations
 
+### Device
+
+- **List**: Lists devices in the authenticated TRMNL account.
+- **Get**: Gets one device by the numeric ID returned by List.
+
+These read-only Account API operations return TRMNL's documented device data for discovery and administration. They do not use the Device Display API, fetch screen images, advance playlists, push content, or refresh physical hardware.
+
 ### Private Plugin
 
 - **Set Content**: Sends a JSON `merge_variables` object to a TRMNL Private Plugin webhook.
@@ -112,7 +119,9 @@ TRMNL's webhook docs: https://docs.trmnl.com/go/private-plugins/webhooks
 
 ### TRMNL Account API
 
-Stores a `user_` TRMNL Account API key for authenticated API features. TRMNL requires a developer license for this API. No current node operation uses this credential; it remains registered for future account, device, and plugin-management operations.
+Stores a `user_` TRMNL Account API key for authenticated API features. TRMNL requires a developer license for this API. Use it with **Device** -> **List** or **Get** for read-only account discovery.
+
+The Device Display API/BYOD endpoints (`/api/display`, `/api/current_screen`, and other screen-image retrieval routes) use a different credential boundary and remain out of scope. Private Plugin webhooks remain the supported content-update path in this node, and device refresh remains pull/check-in based.
 
 See the [Account API roadmap](docs/account-api-roadmap.md) for the proposed read-only discovery, plugin-setting content, playlist, and device slices.
 

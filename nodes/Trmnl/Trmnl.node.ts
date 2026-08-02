@@ -24,6 +24,8 @@ type TrmnlPrivatePluginCredentials = {
 	webhookUrlOrUuid: string;
 };
 
+const TRMNL_ACCOUNT_API_BASE_URL = 'https://trmnl.com';
+
 export class Trmnl implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'TRMNL',
@@ -32,7 +34,7 @@ export class Trmnl implements INodeType {
 		group: ['output'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Send workflow data to TRMNL Private Plugins',
+		description: 'Send workflow data to TRMNL and discover account devices',
 		defaults: {
 			name: 'TRMNL',
 		},
@@ -40,6 +42,15 @@ export class Trmnl implements INodeType {
 		outputs: [NodeConnectionTypes.Main],
 		usableAsTool: true,
 		credentials: [
+			{
+				name: 'trmnlAccountApi',
+				required: true,
+				displayOptions: {
+					show: {
+						resource: ['device'],
+					},
+				},
+			},
 			{
 				name: 'trmnlPrivatePluginApi',
 				required: true,
@@ -58,6 +69,10 @@ export class Trmnl implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
+						name: 'Device',
+						value: 'device',
+					},
+					{
 						name: 'Markup',
 						value: 'markup',
 					},
@@ -67,6 +82,59 @@ export class Trmnl implements INodeType {
 					},
 				],
 				default: 'privatePlugin',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['device'],
+					},
+				},
+				options: [
+					{
+						name: 'Get',
+						value: 'get',
+						description: 'Get a device from the authenticated TRMNL account',
+						action: 'Get a device',
+					},
+					{
+						name: 'List',
+						value: 'list',
+						description: 'List devices in the authenticated TRMNL account',
+						action: 'List devices',
+					},
+				],
+				default: 'list',
+			},
+			{
+				displayName: 'Device ID',
+				name: 'deviceId',
+				type: 'string',
+				required: true,
+				default: '',
+				placeholder: '123456',
+				displayOptions: {
+					show: {
+						resource: ['device'],
+						operation: ['get'],
+					},
+				},
+				description: 'Numeric ID returned by the Device List operation',
+			},
+			{
+				displayName:
+					'Device operations read account metadata only. They do not push content or refresh hardware.',
+				name: 'deviceReadOnlyNotice',
+				type: 'notice',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['device'],
+					},
+				},
 			},
 			{
 				displayName: 'Operation',
@@ -369,9 +437,23 @@ export class Trmnl implements INodeType {
 				const resource = this.getNodeParameter('resource', itemIndex) as string;
 				const operation = this.getNodeParameter('operation', itemIndex) as string;
 
+				if (resource === 'device' && operation === 'list') {
+					const devices = await listDevices.call(this);
+
+					returnData.push(
+						...devices.map((device) => ({
+							json: device,
+							pairedItem: { item: itemIndex },
+						})),
+					);
+					continue;
+				}
+
 				let responseData: IDataObject;
 
-				if (resource === 'privatePlugin' && operation === 'setContent') {
+				if (resource === 'device' && operation === 'get') {
+					responseData = await getDevice.call(this, itemIndex);
+				} else if (resource === 'privatePlugin' && operation === 'setContent') {
 					responseData = await setPrivatePluginContent.call(this, itemIndex);
 				} else if (resource === 'privatePlugin' && operation === 'getContent') {
 					responseData = await getPrivatePluginContent.call(this, itemIndex);
@@ -410,6 +492,53 @@ export class Trmnl implements INodeType {
 
 		return [returnData];
 	}
+}
+
+async function listDevices(this: IExecuteFunctions): Promise<IDataObject[]> {
+	const response = await trmnlAccountApiRequest.call(this, {
+		method: 'GET',
+		url: '/api/devices',
+	});
+	const normalizedResponse = normalizeResponse(response);
+
+	if (!Array.isArray(normalizedResponse.data)) {
+		return [normalizedResponse];
+	}
+
+	return normalizedResponse.data.map((device) => normalizeResponse(device));
+}
+
+async function getDevice(this: IExecuteFunctions, itemIndex: number): Promise<IDataObject> {
+	const deviceId = String(this.getNodeParameter('deviceId', itemIndex)).trim();
+	const numericDeviceId = Number(deviceId);
+
+	if (!/^\d+$/.test(deviceId) || !Number.isSafeInteger(numericDeviceId) || numericDeviceId <= 0) {
+		throw new NodeOperationError(this.getNode(), 'Device ID must be a positive integer.', {
+			itemIndex,
+		});
+	}
+
+	const response = await trmnlAccountApiRequest.call(this, {
+		method: 'GET',
+		url: `/api/devices/${numericDeviceId}`,
+	});
+	const normalizedResponse = normalizeResponse(response);
+	const device = normalizedResponse.data;
+
+	return device && typeof device === 'object' && !Array.isArray(device)
+		? (device as IDataObject)
+		: normalizedResponse;
+}
+
+async function trmnlAccountApiRequest(
+	this: IExecuteFunctions,
+	options: IHttpRequestOptions,
+): Promise<unknown> {
+	return await this.helpers.httpRequestWithAuthentication.call(this, 'trmnlAccountApi', {
+		...options,
+		url: `${TRMNL_ACCOUNT_API_BASE_URL}${options.url}`,
+		json: true,
+	} as IHttpRequestOptions);
 }
 
 async function setPrivatePluginContent(

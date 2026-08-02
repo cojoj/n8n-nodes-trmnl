@@ -18,6 +18,26 @@ describe('TRMNL credential descriptions', () => {
 		assert.deepEqual(new TrmnlAccountApi().icon, officialTrmnlIcons);
 	});
 
+	it('authenticates Account API requests with the user key as a Bearer token', () => {
+		const credential = new TrmnlAccountApi();
+
+		assert.deepEqual(credential.authenticate, {
+			type: 'generic',
+			properties: {
+				headers: {
+					Authorization: '=Bearer {{$credentials.apiKey}}',
+				},
+			},
+		});
+		assert.deepEqual(credential.test, {
+			request: {
+				baseURL: 'https://trmnl.com',
+				url: '/api/me',
+				method: 'GET',
+			},
+		});
+	});
+
 	it('keeps the Private Plugin endpoint secret and required', () => {
 		const credential = new TrmnlPrivatePluginApi();
 		const endpoint = credential.properties.find(
@@ -92,7 +112,8 @@ describe('TRMNL credential descriptions', () => {
 		assert.match(privatePluginNotice.displayName, /Webhook strategy/);
 		assert.ok(accountNotice);
 		assert.equal(accountNotice.type, 'notice');
-		assert.match(accountNotice.displayName, /No current TRMNL node operation uses/);
+		assert.match(accountNotice.displayName, /Device List and Get/);
+		assert.match(accountNotice.displayName, /do not push content or refresh hardware/);
 		assert.ok(accountApiKey);
 		assert.match(accountApiKey.description ?? '', /developer license/);
 		assert.match(accountApiKey.description ?? '', /Do not enter a Private Plugin UUID/);
