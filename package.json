@@ -1,8 +1,8 @@
 {
 	"name": "n8n-nodes-trmnl",
-	"version": "0.2.0",
+	"version": "0.1.0",
 	"packageManager": "pnpm@11.18.0",
-	"description": "n8n community node for sending workflow data to TRMNL private plugins.",
+	"description": "n8n community nodes for TRMNL Webhook and Polling private plugins.",
 	"license": "MIT",
 	"homepage": "https://github.com/cojoj/n8n-nodes-trmnl",
 	"keywords": [
@@ -44,10 +44,12 @@
 		"strict": true,
 		"credentials": [
 			"dist/credentials/TrmnlPrivatePluginApi.credentials.js",
-			"dist/credentials/TrmnlAccountApi.credentials.js"
+			"dist/credentials/TrmnlAccountApi.credentials.js",
+			"dist/credentials/TrmnlPollingHeaderAuthApi.credentials.js"
 		],
 		"nodes": [
-			"dist/nodes/Trmnl/Trmnl.node.js"
+			"dist/nodes/Trmnl/Trmnl.node.js",
+			"dist/nodes/Trmnl/TrmnlTrigger.node.js"
 		]
 	},
 	"devDependencies": {

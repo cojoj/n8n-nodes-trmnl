@@ -9,7 +9,10 @@ const { NodeApiError } = require('n8n-workflow');
 
 function createExecuteContext({
 	parameters,
-	credentials = { webhookUrlOrUuid: 'test-plugin-uuid' },
+	credentials = {
+		trmnlPrivatePluginApi: { webhookUrlOrUuid: 'test-plugin-uuid' },
+		trmnlAccountApi: { apiKey: 'user_test' },
+	},
 	httpResponse = { accepted: true },
 	httpError,
 	continueOnFail = false,
@@ -40,7 +43,7 @@ function createExecuteContext({
 			getNodeParameter: (name, _itemIndex, fallback) =>
 				Object.prototype.hasOwnProperty.call(parameters, name) ? parameters[name] : fallback,
 			getNode: () => node,
-			getCredentials: async () => credentials,
+			getCredentials: async (credentialType) => credentials[credentialType],
 			continueOnFail: () => continueOnFail,
 			helpers: {
 				httpRequestWithAuthentication: async (authentication, options) =>
@@ -72,6 +75,87 @@ function setContentParameters(overrides = {}) {
 }
 
 describe('TRMNL node execution', () => {
+	it('lists devices with Account API authentication and preserves each device', async () => {
+		const devices = [
+			{
+				id: 123456,
+				name: 'Office TRMNL',
+				friendly_id: 'A1B2C3',
+				battery_voltage: 3.9,
+			},
+			{
+				id: 654321,
+				name: 'Kitchen TRMNL',
+				friendly_id: 'D4E5F6',
+				rssi: -41,
+			},
+		];
+		const { result, requests } = await executeWith({
+			parameters: { resource: 'device', operation: 'list' },
+			httpResponse: { data: devices },
+		});
+
+		assert.deepEqual(requests, [
+			{
+				authentication: 'trmnlAccountApi',
+				options: {
+					method: 'GET',
+					url: 'https://trmnl.com/api/devices',
+					json: true,
+				},
+			},
+		]);
+		assert.deepEqual(
+			result[0].map((item) => item.json),
+			devices,
+		);
+		assert.ok(result[0].every((item) => !Object.hasOwn(item.json, 'deviceUpdate')));
+	});
+
+	it('gets a device with Account API authentication and preserves its data', async () => {
+		const device = {
+			id: 123456,
+			name: 'Office TRMNL',
+			friendly_id: 'A1B2C3',
+			last_ping_at: '2026-08-02T19:45:00.000Z',
+		};
+		const { result, requests } = await executeWith({
+			parameters: { resource: 'device', operation: 'get', deviceId: '123456' },
+			httpResponse: { data: device },
+		});
+
+		assert.deepEqual(requests, [
+			{
+				authentication: 'trmnlAccountApi',
+				options: {
+					method: 'GET',
+					url: 'https://trmnl.com/api/devices/123456',
+					json: true,
+				},
+			},
+		]);
+		assert.deepEqual(result[0][0].json, device);
+		assert.equal(Object.hasOwn(result[0][0].json, 'deviceUpdate'), false);
+	});
+
+	it('rejects an invalid Device ID before making an Account API request', async () => {
+		const { context, requests } = createExecuteContext({
+			parameters: { resource: 'device', operation: 'get', deviceId: '../display' },
+		});
+
+		await assert.rejects(new Trmnl().execute.call(context), /Device ID must be a positive integer/);
+		assert.equal(requests.length, 0);
+	});
+
+	it('rejects a zero Device ID before making an Account API request', async () => {
+		const { context, requests } = createExecuteContext({
+			parameters: { resource: 'device', operation: 'get', deviceId: '0' },
+		});
+
+		await assert.rejects(new Trmnl().execute.call(context), /Device ID must be a positive integer/);
+		assert.equal(requests.length, 0);
+	});
+
 	it('posts Set Content and returns diagnostic output', async () => {
 		const { result, requests } = await executeWith({
 			parameters: setContentParameters(),

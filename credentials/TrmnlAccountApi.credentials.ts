@@ -20,7 +20,7 @@ export class TrmnlAccountApi implements ICredentialType {
 	properties: INodeProperties[] = [
 		{
 			displayName:
-				'No current TRMNL node operation uses this credential. It is registered for future account, device, and plugin-management operations.',
+				'Used by Device List and Get for read-only account discovery. These operations do not push content or refresh hardware.',
 			name: 'accountApiNotice',
 			type: 'notice',
 			default: '',

@@ -48,7 +48,7 @@ When TRMNL returns `{ "data": "Hello, World!" }`, the node output includes top-l
 3. Paste either the full Webhook URL or only the Plugin UUID.
 4. Save the credential.
 
-The credential test trims and validates the value using the same endpoint normalization as Private Plugin node operations, then performs a read-only `GET` request to the resulting webhook endpoint. Do not use a `user_` Account API key here; no current node operation uses the separate **TRMNL Account API** credential.
+The credential test trims and validates the value using the same endpoint normalization as Private Plugin node operations, then performs a read-only `GET` request to the resulting webhook endpoint. Do not use a `user_` Account API key here; the separate **TRMNL Account API** credential is used only by **Device** -> **List** and **Get**.
 
 ## Build the Workflow
 
@@ -74,12 +74,12 @@ Expected output:
 
 ```json
 {
-  "operation": "setContent",
-  "success": true,
-  "payloadSizeBytes": 238,
-  "payloadLimitBytes": 2048,
-  "mergeStrategy": "replace",
-  "deviceUpdate": "next_refresh"
+	"operation": "setContent",
+	"success": true,
+	"payloadSizeBytes": 238,
+	"payloadLimitBytes": 2048,
+	"mergeStrategy": "replace",
+	"deviceUpdate": "next_refresh"
 }
 ```
 
@@ -113,3 +113,17 @@ After n8n sends data, the TRMNL web preview updates first. The physical device u
 For testing, use **Force Refresh** from the plugin settings page, then wait for the device's next check-in or use the device controls according to TRMNL's refresh rules.
 
 For release-candidate acceptance, work through the [manual test matrix](manual-test-matrix.md). It separates offline checks, webhook acceptance, stored-data verification, TRMNL Activity/preview evidence, and the physical-device refresh.
+
+## Use Polling as an n8n Trigger
+
+Use synchronous Polling when the data can be prepared within TRMNL's request window.
+
+1. Add **TRMNL Trigger** as the first node.
+2. Choose the GET or POST verb you will configure in TRMNL.
+3. Optionally create **TRMNL Polling Header Auth API** credentials. Copy the exact same header name and value into TRMNL's Polling Headers.
+4. Make the workflow's final node output the root JSON object used by the plugin markup.
+5. Activate the workflow and copy the trigger's production URL into the Private Plugin's Polling URL.
+
+The production URL must be publicly reachable over HTTPS. On success, the trigger returns the first item from the last node as JSON with HTTP 200. Request query parameters, body, and method are available to the workflow; request headers are deliberately omitted so the auth secret cannot leak downstream.
+
+Import `examples/private-plugin-polling/polling-workflow.json` for a small starting point.
