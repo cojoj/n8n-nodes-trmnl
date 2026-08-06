@@ -33,7 +33,8 @@ describe('TRMNL node description', () => {
 
 		const operation = properties.find(
 			(property) =>
-				property.name === 'operation' && property.displayOptions?.show?.resource?.includes('device'),
+				property.name === 'operation' &&
+				property.displayOptions?.show?.resource?.includes('device'),
 		);
 		assert.ok(operation && 'options' in operation && operation.options);
 		assert.deepEqual(
@@ -78,9 +79,7 @@ describe('TRMNL node description', () => {
 			['fields', 'json'],
 		);
 
-		const assignments = properties.find(
-			(property) => property.name === 'mergeVariableAssignments',
-		);
+		const assignments = properties.find((property) => property.name === 'mergeVariableAssignments');
 		assert.ok(assignments);
 		assert.equal(assignments.type, 'assignmentCollection');
 		assert.deepEqual(assignments.displayOptions?.show?.mergeVariablesMode, ['fields']);

@@ -170,7 +170,10 @@ describe('TRMNL payload helpers', () => {
 
 	it('rejects invalid stream limits', () => {
 		assert.deepEqual(
-			buildPrivatePluginPayload({ temperatures: [42] }, { mergeStrategy: 'stream', streamLimit: 0 }),
+			buildPrivatePluginPayload(
+				{ temperatures: [42] },
+				{ mergeStrategy: 'stream', streamLimit: 0 },
+			),
 			{
 				ok: false,
 				error: 'Stream Limit must be a positive integer.',

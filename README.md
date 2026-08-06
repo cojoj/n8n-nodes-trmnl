@@ -8,7 +8,7 @@
 <h1 align="center">n8n-nodes-trmnl</h1>
 
 <p align="center">
-  Send workflow data to TRMNL Private Plugins and discover account devices.
+  Connect n8n workflows to TRMNL Webhook and Polling Private Plugins.
 </p>
 
 <p align="center">
@@ -16,7 +16,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-171717" alt="MIT license"></a>
 </p>
 
-This is an independent n8n community node for sending workflow data to [TRMNL](https://trmnl.com/) Private Plugins.
+This is an independent n8n community node for sending data to and serving data from [TRMNL](https://trmnl.com/) Private Plugins.
 
 TRMNL devices are pull-based: n8n sends data to TRMNL, TRMNL renders the screen, and the device shows it on the next refresh. This node does not push directly to the hardware.
 
@@ -27,6 +27,8 @@ This project is in an MVP state. The core loop has been validated with a real TR
 ```text
 n8n workflow -> TRMNL node -> Private Plugin webhook -> TRMNL render -> device refresh
 ```
+
+Polling is the inverse flow: TRMNL calls an active n8n workflow and the workflow supplies the screen data. This path has been validated against hosted TRMNL through the rendered markup preview.
 
 The node uses TRMNL's official glyphs from its [Brand Assets](https://trmnl.com/brand) page. See [docs/brand-assets.md](docs/brand-assets.md) for provenance. This is an independent community project; TRMNL and n8n are trademarks of their respective owners.
 
@@ -64,6 +66,12 @@ See [docs/getting-started.md](docs/getting-started.md) for the full walkthrough.
 
 ## Operations
 
+### TRMNL Trigger
+
+- **Polling Request**: exposes a production webhook URL and returns the first JSON item from the workflow's last node with HTTP 200.
+
+The trigger supports GET or POST and optional **TRMNL Polling Header Auth API** credentials. Configure the same header in TRMNL's Polling Headers. Incoming headers are intentionally not copied into workflow output.
+
 ### Device
 
 - **List**: Lists devices in the authenticated TRMNL account.
@@ -100,12 +108,13 @@ When TRMNL returns its rendered result in `data`, the node exposes that value as
 
 ## Example
 
-The repository includes a small verified dashboard example:
+The repository includes a verified Webhook dashboard and Polling workflow examples:
 
 - [examples/private-plugin-dashboard/markup-full.liquid](examples/private-plugin-dashboard/markup-full.liquid)
 - [examples/private-plugin-dashboard/payload.json](examples/private-plugin-dashboard/payload.json)
 - [examples/private-plugin-dashboard/workflow.json](examples/private-plugin-dashboard/workflow.json)
 - [examples/private-plugin-dashboard/README.md](examples/private-plugin-dashboard/README.md)
+- [examples/private-plugin-polling/README.md](examples/private-plugin-polling/README.md)
 
 Use this as the first smoke test after installing the node.
 
@@ -113,9 +122,13 @@ Use this as the first smoke test after installing the node.
 
 ### TRMNL Private Plugin API
 
-Use the Webhook URL from a saved TRMNL Private Plugin configured with the **Webhook** strategy, or paste only the Plugin Setting UUID. The credential test applies the same URL/UUID normalization as Private Plugin node operations and performs a read-only `GET` request.
+Use the Webhook URL from a saved Private Plugin, or paste only the Plugin Setting UUID. The credential test performs a read-only `GET` against the Webhook endpoint.
 
 TRMNL's webhook docs: https://docs.trmnl.com/go/private-plugins/webhooks
+
+### TRMNL Polling Header Auth API
+
+Stores the header name and secret value used to authenticate incoming Polling requests. Put the same pair in the Private Plugin's Polling Headers. Because TRMNL initiates this request, credential testing validates the local configuration; the live request is proven only when TRMNL calls an active, public HTTPS workflow.
 
 ### TRMNL Account API
 

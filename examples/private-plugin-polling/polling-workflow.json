@@ -1,0 +1,50 @@
+{
+	"name": "TRMNL Private Plugin Polling",
+	"nodes": [
+		{
+			"parameters": {
+				"httpMethod": "GET",
+				"authentication": "none"
+			},
+			"type": "CUSTOM.trmnlTrigger",
+			"typeVersion": 1,
+			"position": [0, 0],
+			"id": "5e08ae28-64d7-4516-b31e-57d31da35450",
+			"name": "TRMNL Trigger"
+		},
+		{
+			"parameters": {
+				"assignments": {
+					"assignments": [
+						{
+							"id": "a58d251d-e73c-43f8-a455-58f58f54d23c",
+							"name": "title",
+							"value": "Hello from n8n Polling",
+							"type": "string"
+						},
+						{
+							"id": "23448913-da32-438e-b836-fcfe649509e5",
+							"name": "status",
+							"value": "ready",
+							"type": "string"
+						}
+					]
+				},
+				"options": {}
+			},
+			"type": "n8n-nodes-base.set",
+			"typeVersion": 3.4,
+			"position": [240, 0],
+			"id": "74122dc4-5a2e-43db-a479-c77788955d06",
+			"name": "Build TRMNL data"
+		}
+	],
+	"connections": {
+		"TRMNL Trigger": {
+			"main": [[{ "node": "Build TRMNL data", "type": "main", "index": 0 }]]
+		}
+	},
+	"settings": {
+		"executionOrder": "v1"
+	}
+}

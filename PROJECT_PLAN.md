@@ -80,6 +80,17 @@ Resource: `Markup`
 
 ## Post-MVP
 
+Included in the first public release:
+
+- `TRMNL Trigger` for Polling with a synchronous root-JSON response.
+- Encrypted custom-header authentication for incoming polling calls.
+
+Hosted validation on 2026-08-03 proved synchronous Polling end to end.
+
+Deferred after contract research:
+
+- Async Polling trigger and callback support. The initial HTTP 202 acknowledgment worked, but hosted TRMNL returned HTTP 410 `Version mismatch` for immediate, delayed, and matching `version: 1` callback experiments. Async Polling stays outside the released node until TRMNL's callback version contract is documented and validated.
+
 Resource: `Account`
 
 - `Get Me`
@@ -176,6 +187,7 @@ Use `this.helpers.httpRequestWithAuthentication.call(...)` for authenticated acc
 - What is the exact multipart shape for `/api/plugin_settings/:uuid/image`?
 - Is there an account API way to force-refresh a plugin setting outside the marketplace return-link flow?
 - What response body do private plugin webhook POSTs return in practice?
+- Does hosted Async Polling require any callback envelope beyond the root JSON object shown by the Private Plugin contract?
 
 ## Opinionated Roadmap
 

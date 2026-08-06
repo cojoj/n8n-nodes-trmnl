@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { TrmnlAccountApi } from '../dist/credentials/TrmnlAccountApi.credentials.js';
+import { TrmnlPollingHeaderAuthApi } from '../dist/credentials/TrmnlPollingHeaderAuthApi.credentials.js';
 import { TrmnlPrivatePluginApi } from '../dist/credentials/TrmnlPrivatePluginApi.credentials.js';
 
 const officialTrmnlIcons = {
@@ -16,6 +17,16 @@ describe('TRMNL credential descriptions', () => {
 
 	it('uses themed official glyphs for Account API credentials', () => {
 		assert.deepEqual(new TrmnlAccountApi().icon, officialTrmnlIcons);
+	});
+
+	it('uses themed official glyphs and a masked value for Polling Header Auth', () => {
+		const credential = new TrmnlPollingHeaderAuthApi();
+		const headerValue = credential.properties.find((property) => property.name === 'headerValue');
+
+		assert.deepEqual(credential.icon, officialTrmnlIcons);
+		assert.ok(headerValue);
+		assert.equal(headerValue.required, true);
+		assert.equal(headerValue.typeOptions?.password, true);
 	});
 
 	it('authenticates Account API requests with the user key as a Bearer token', () => {
@@ -40,9 +51,7 @@ describe('TRMNL credential descriptions', () => {
 
 	it('keeps the Private Plugin endpoint secret and required', () => {
 		const credential = new TrmnlPrivatePluginApi();
-		const endpoint = credential.properties.find(
-			(property) => property.name === 'webhookUrlOrUuid',
-		);
+		const endpoint = credential.properties.find((property) => property.name === 'webhookUrlOrUuid');
 
 		assert.ok(endpoint);
 		assert.equal(endpoint.required, true);

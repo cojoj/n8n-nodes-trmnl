@@ -253,7 +253,7 @@ export class Trmnl implements INodeType {
 			},
 			{
 				displayName:
-					'TRMNL displays the new content on the device\'s next scheduled or manual refresh.',
+					"TRMNL displays the new content on the device's next scheduled or manual refresh.",
 				name: 'refreshBehaviorNotice',
 				type: 'notice',
 				default: '',
@@ -293,8 +293,7 @@ export class Trmnl implements INodeType {
 						operation: ['setContent'],
 					},
 				},
-				description:
-					'How to combine this payload with the merge variables already stored by TRMNL',
+				description: 'How to combine this payload with the merge variables already stored by TRMNL',
 			},
 			{
 				displayName: 'Stream Limit',
@@ -566,10 +565,7 @@ async function setPrivatePluginContent(
 			? assignmentsToJsonObject(
 					this.getNodeParameter('mergeVariableAssignments', itemIndex, { assignments: [] }),
 				)
-			: parseJsonObject(
-					this.getNodeParameter('mergeVariables', itemIndex),
-					'Merge Variables',
-				),
+			: parseJsonObject(this.getNodeParameter('mergeVariables', itemIndex), 'Merge Variables'),
 		this,
 		itemIndex,
 	);

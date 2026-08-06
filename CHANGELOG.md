@@ -1,15 +1,9 @@
-# 0.2.0
+# 0.1.0
 
-- Replaced the custom artwork with official TRMNL light and dark glyphs for nodes and credentials, with documented asset provenance.
-- Added native fields and JSON input modes for Private Plugin merge variables and Markup Render variables, including typed values and n8n expressions.
-- Kept Liquid markup literal so Liquid tags no longer conflict with n8n expression syntax.
-- Made Stream Limit conditional, clarified merge strategy behavior, and improved operation output metadata.
-- Expanded tests and documentation for branding, node UX, Stream behavior, and pull-based device refreshes.
-
-## 0.1.0
-
-- Added the first TRMNL community node MVP.
-- Added Private Plugin Set Content and Get Content operations.
-- Added Markup Render operation.
-- Added TRMNL Private Plugin and Account API credentials.
-- Added payload helper tests, example Private Plugin markup, setup docs, CI, and MIT license.
+- Added Private Plugin Set Content and Get Content operations with Replace, Deep Merge, and Stream strategies.
+- Added Markup Render with literal Liquid markup and convenient top-level rendered output.
+- Added read-only Account API Device List and Get operations.
+- Added a synchronous TRMNL Polling trigger with GET/POST support and root JSON responses.
+- Added optional encrypted header authentication for incoming Polling requests without exposing request headers to workflow data.
+- Added native fields and JSON input modes, payload validation, official TRMNL glyphs, examples, setup guidance, tests, CI, and an MIT license.
+- Live-validated the Webhook flow on a physical TRMNL device and synchronous Polling through hosted TRMNL's rendered markup preview.
