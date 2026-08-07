@@ -20,6 +20,9 @@
 		"type": "git",
 		"url": "git+https://github.com/cojoj/n8n-nodes-trmnl.git"
 	},
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"build": "n8n-node build",
 		"build:watch": "tsc --watch",
