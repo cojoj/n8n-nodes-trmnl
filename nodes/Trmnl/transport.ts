@@ -24,8 +24,10 @@ function getStatusCode(error: unknown): number | undefined {
 	return Number.isInteger(statusCode) ? statusCode : undefined;
 }
 
-function cleanAccountApiError(error: unknown, url: string): unknown {
+function cleanAccountApiError(error: unknown, options: IHttpRequestOptions): unknown {
 	const statusCode = getStatusCode(error);
+	const method = options.method ?? 'GET';
+	const { url } = options;
 	let message: string | undefined;
 
 	if (statusCode === 401) {
@@ -35,7 +37,12 @@ function cleanAccountApiError(error: unknown, url: string): unknown {
 		message = 'TRMNL could not find the requested account resource.';
 	} else if (statusCode === 422 && /\/api\/plugin_settings\/[^/]+\/data$/.test(url)) {
 		message =
-			'TRMNL has no data available for this Plugin Setting. Its source may not have refreshed yet.';
+			method === 'POST'
+				? 'TRMNL cannot modify data for this Plugin Setting. The setting may not support Account API data updates.'
+				: 'TRMNL has no data available for this Plugin Setting. Its source may not have refreshed yet.';
+	} else if (statusCode === 422 && /\/api\/plugin_settings\/[^/]+\/markup\/[^/]+$/.test(url)) {
+		message =
+			'TRMNL rejected this markup size. Use a size returned by Get Details or another size supported by the Plugin Setting.';
 	}
 
 	if (!message || statusCode === undefined) {
@@ -57,9 +64,9 @@ export async function trmnlAccountApiRequest(
 		return await this.helpers.httpRequestWithAuthentication.call(this, 'trmnlAccountApi', {
 			...options,
 			url: `${TRMNL_ACCOUNT_API_BASE_URL}${options.url}`,
-			json: true,
+			json: options.json ?? true,
 		} as IHttpRequestOptions);
 	} catch (error) {
-		throw cleanAccountApiError(error, options.url);
+		throw cleanAccountApiError(error, options);
 	}
 }

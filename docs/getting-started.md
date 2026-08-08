@@ -48,7 +48,9 @@ When TRMNL returns `{ "data": "Hello, World!" }`, the node output includes top-l
 3. Paste either the full Webhook URL or only the Plugin UUID.
 4. Save the credential.
 
-The credential test trims and validates the value using the same endpoint normalization as Private Plugin node operations, then performs a read-only `GET` request to the resulting webhook endpoint. Do not use a `user_` Account API key here; the separate **TRMNL Account API** credential is used only by **Device** -> **List** and **Get**.
+The credential test trims and validates the value using the same endpoint normalization as Private Plugin node operations, then performs a read-only `GET` request to the resulting webhook endpoint. Do not use a `user_` Account API key here; the separate **TRMNL Account API** credential is used by Device and Plugin Setting operations.
+
+For Account API automation, create **TRMNL Account API** credentials with the `user_` key from TRMNL account settings. **Plugin Setting > Update Data** changes hosted merge variables, while **Read Markup** and **Write Markup** manage one markup size. Saving data or markup does not Force Refresh a device; verify hosted state and rendered preview separately.
 
 ## Build the Workflow
 

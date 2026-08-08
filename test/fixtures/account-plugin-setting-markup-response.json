@@ -1,0 +1,6 @@
+{
+	"data": {
+		"size": "markup_full",
+		"markup": "<div class=\"layout\">\r\n  <span>{{ acceptance_message }}</span>\r\n</div>\r\n"
+	}
+}

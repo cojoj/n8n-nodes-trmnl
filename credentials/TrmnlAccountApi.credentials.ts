@@ -20,7 +20,7 @@ export class TrmnlAccountApi implements ICredentialType {
 	properties: INodeProperties[] = [
 		{
 			displayName:
-				'Used by Device and Plugin Setting read operations for account discovery. These operations do not change plugin data, markup, playlists, or devices.',
+				'Used by Device reads and Plugin Setting read, data-update, and markup-management operations. Writes change hosted Plugin Setting state but do not Force Refresh a physical device.',
 			name: 'accountApiNotice',
 			type: 'notice',
 			default: '',

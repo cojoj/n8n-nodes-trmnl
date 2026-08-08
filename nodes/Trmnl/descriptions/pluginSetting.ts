@@ -30,6 +30,24 @@ export const pluginSettingProperties: INodeProperties[] = [
 				description: 'List plugin settings returned by the authenticated TRMNL account',
 				action: 'List plugin settings',
 			},
+			{
+				name: 'Read Markup',
+				value: 'readMarkup',
+				description: 'Read the saved Liquid markup for a Plugin Setting size',
+				action: 'Read plugin setting markup',
+			},
+			{
+				name: 'Update Data',
+				value: 'updateData',
+				description: 'Update server-side data for a Plugin Setting',
+				action: 'Update plugin setting data',
+			},
+			{
+				name: 'Write Markup',
+				value: 'writeMarkup',
+				description: 'Save Liquid markup for a Plugin Setting size',
+				action: 'Write plugin setting markup',
+			},
 		],
 		default: 'list',
 	},
@@ -58,7 +76,7 @@ export const pluginSettingProperties: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['pluginSetting'],
-				operation: ['getDetails'],
+				operation: ['getDetails', 'readMarkup', 'writeMarkup'],
 			},
 		},
 		description: 'Plugin Setting UUID, which can be supplied with an n8n expression',
@@ -73,20 +91,147 @@ export const pluginSettingProperties: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['pluginSetting'],
-				operation: ['getData'],
+				operation: ['getData', 'updateData'],
 			},
 		},
 		description: 'Numeric Plugin Setting ID or UUID, which can be supplied with an n8n expression',
 	},
 	{
+		displayName: 'Specify Merge Variables',
+		name: 'pluginSettingDataMode',
+		type: 'options',
+		noDataExpression: true,
+		options: [
+			{
+				name: 'Using Fields Below',
+				value: 'fields',
+				description: 'Add merge variables one by one',
+			},
+			{
+				name: 'Using JSON',
+				value: 'json',
+				description: 'Provide all merge variables as one JSON object',
+			},
+		],
+		default: 'json',
+		displayOptions: {
+			show: {
+				resource: ['pluginSetting'],
+				operation: ['updateData'],
+			},
+		},
+		description: 'How to define the merge variables stored for this Plugin Setting',
+	},
+	{
+		displayName: 'Merge Variables',
+		name: 'pluginSettingDataAssignments',
+		type: 'assignmentCollection',
+		default: { assignments: [] },
+		typeOptions: {
+			assignment: {
+				defaultType: 'string',
+			},
+		},
+		displayOptions: {
+			show: {
+				resource: ['pluginSetting'],
+				operation: ['updateData'],
+				pluginSettingDataMode: ['fields'],
+			},
+		},
+		description: 'Server-side Plugin Setting data. Values support n8n expressions.',
+	},
+	{
+		displayName: 'JSON',
+		name: 'pluginSettingData',
+		type: 'json',
+		required: true,
+		default: '{\n  "status": "ready"\n}',
+		typeOptions: {
+			rows: 8,
+		},
+		displayOptions: {
+			show: {
+				resource: ['pluginSetting'],
+				operation: ['updateData'],
+			},
+			hide: {
+				pluginSettingDataMode: ['fields'],
+			},
+		},
+		description: 'JSON object to store as merge variables. n8n expressions are supported here.',
+	},
+	{
+		displayName: 'Markup Size',
+		name: 'markupSize',
+		type: 'string',
+		required: true,
+		default: 'markup_full',
+		placeholder: 'markup_full',
+		displayOptions: {
+			show: {
+				resource: ['pluginSetting'],
+				operation: ['readMarkup', 'writeMarkup'],
+			},
+		},
+		description:
+			'Markup size returned by Get Details when available, or another size supported by TRMNL. n8n expressions are supported.',
+	},
+	{
+		displayName: 'Liquid Markup',
+		name: 'pluginSettingMarkup',
+		type: 'string',
+		noDataExpression: true,
+		typeOptions: {
+			rows: 12,
+		},
+		required: true,
+		default: '<div class="layout">{{ message }}</div>',
+		displayOptions: {
+			show: {
+				resource: ['pluginSetting'],
+				operation: ['writeMarkup'],
+			},
+		},
+		description:
+			'Liquid markup saved to TRMNL unchanged. This field intentionally does not evaluate n8n expressions.',
+	},
+	{
 		displayName:
-			'Plugin Setting operations in this release are read-only. They do not change data, markup, playlists, or devices. List reflects only the records returned by TRMNL and is not documented as a complete inventory.',
+			'List, Get Details, Get Data, and Read Markup are read-only. List reflects only the records returned by TRMNL and is not documented as a complete inventory.',
 		name: 'pluginSettingReadOnlyNotice',
 		type: 'notice',
 		default: '',
 		displayOptions: {
 			show: {
 				resource: ['pluginSetting'],
+				operation: ['list', 'getDetails', 'getData', 'readMarkup'],
+			},
+		},
+	},
+	{
+		displayName:
+			'Update Data mutates server-side Plugin Setting data. It does not Force Refresh or prove delivery to a physical device.',
+		name: 'pluginSettingDataWriteNotice',
+		type: 'notice',
+		default: '',
+		displayOptions: {
+			show: {
+				resource: ['pluginSetting'],
+				operation: ['updateData'],
+			},
+		},
+	},
+	{
+		displayName:
+			'Write Markup changes the template used on future TRMNL renders. Saving markup does not Force Refresh or prove a physical-device update.',
+		name: 'pluginSettingMarkupWriteNotice',
+		type: 'notice',
+		default: '',
+		displayOptions: {
+			show: {
+				resource: ['pluginSetting'],
+				operation: ['writeMarkup'],
 			},
 		},
 	},

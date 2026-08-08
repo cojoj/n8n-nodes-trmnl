@@ -5,12 +5,13 @@ import { Trmnl } from '../dist/nodes/Trmnl/Trmnl.node.js';
 
 describe('TRMNL node description', () => {
 	it('provides light and dark icons', () => {
-		const { icon } = new Trmnl().description;
+		const { icon, version } = new Trmnl().description;
 
 		assert.deepEqual(icon, {
 			light: 'file:trmnl.svg',
 			dark: 'file:trmnl.dark.svg',
 		});
+		assert.equal(version, 1);
 	});
 
 	it('requires Account API credentials for Device and Plugin Setting operations', () => {
@@ -55,16 +56,14 @@ describe('TRMNL node description', () => {
 		);
 		assert.deepEqual(
 			pluginSettingOperation.options.map((option) => option.value),
-			['getData', 'getDetails', 'list'],
+			['getData', 'getDetails', 'list', 'readMarkup', 'updateData', 'writeMarkup'],
 		);
 	});
 
 	it('keeps Plugin Setting identifiers expression-friendly without a dynamic selector', () => {
 		const { properties } = new Trmnl().description;
 		const pluginId = properties.find((property) => property.name === 'pluginId');
-		const pluginSettingUuid = properties.find(
-			(property) => property.name === 'pluginSettingUuid',
-		);
+		const pluginSettingUuid = properties.find((property) => property.name === 'pluginSettingUuid');
 		const pluginSettingId = properties.find((property) => property.name === 'pluginSettingId');
 
 		assert.ok(pluginId);
@@ -74,12 +73,73 @@ describe('TRMNL node description', () => {
 		assert.ok(pluginSettingUuid);
 		assert.equal(pluginSettingUuid.type, 'string');
 		assert.equal(pluginSettingUuid.required, true);
-		assert.deepEqual(pluginSettingUuid.displayOptions?.show?.operation, ['getDetails']);
+		assert.deepEqual(pluginSettingUuid.displayOptions?.show?.operation, [
+			'getDetails',
+			'readMarkup',
+			'writeMarkup',
+		]);
 		assert.ok(pluginSettingId);
 		assert.equal(pluginSettingId.type, 'string');
 		assert.equal(pluginSettingId.required, true);
-		assert.deepEqual(pluginSettingId.displayOptions?.show?.operation, ['getData']);
+		assert.deepEqual(pluginSettingId.displayOptions?.show?.operation, ['getData', 'updateData']);
 		assert.ok(properties.every((property) => property.type !== 'resourceLocator'));
+	});
+
+	it('keeps markup sizes open, expression-friendly, and safe by default', () => {
+		const { properties } = new Trmnl().description;
+		const markupSize = properties.find((property) => property.name === 'markupSize');
+
+		assert.ok(markupSize);
+		assert.equal(markupSize.type, 'string');
+		assert.equal(markupSize.default, 'markup_full');
+		assert.equal(markupSize.noDataExpression, undefined);
+		assert.deepEqual(markupSize.displayOptions?.show?.operation, ['readMarkup', 'writeMarkup']);
+		assert.match(markupSize.description ?? '', /returned by Get Details when available/);
+	});
+
+	it('offers native fields and JSON modes for Plugin Setting data updates', () => {
+		const { properties } = new Trmnl().description;
+		const mode = properties.find((property) => property.name === 'pluginSettingDataMode');
+		const assignments = properties.find(
+			(property) => property.name === 'pluginSettingDataAssignments',
+		);
+		const json = properties.find((property) => property.name === 'pluginSettingData');
+
+		assert.ok(mode && 'options' in mode && mode.options);
+		assert.equal(mode.default, 'json');
+		assert.deepEqual(
+			mode.options.map((option) => option.value),
+			['fields', 'json'],
+		);
+		assert.deepEqual(mode.displayOptions?.show?.operation, ['updateData']);
+		assert.ok(assignments);
+		assert.equal(assignments.type, 'assignmentCollection');
+		assert.deepEqual(assignments.displayOptions?.show?.pluginSettingDataMode, ['fields']);
+		assert.ok(json);
+		assert.equal(json.type, 'json');
+		assert.deepEqual(json.displayOptions?.hide?.pluginSettingDataMode, ['fields']);
+	});
+
+	it('keeps saved Plugin Setting Liquid markup literal and explains write semantics', () => {
+		const { properties } = new Trmnl().description;
+		const markup = properties.find((property) => property.name === 'pluginSettingMarkup');
+		const dataNotice = properties.find(
+			(property) => property.name === 'pluginSettingDataWriteNotice',
+		);
+		const markupNotice = properties.find(
+			(property) => property.name === 'pluginSettingMarkupWriteNotice',
+		);
+
+		assert.ok(markup);
+		assert.equal(markup.displayName, 'Liquid Markup');
+		assert.equal(markup.noDataExpression, true);
+		assert.match(markup.description ?? '', /saved to TRMNL unchanged/);
+		assert.ok(dataNotice);
+		assert.match(dataNotice.displayName, /server-side Plugin Setting data/);
+		assert.match(dataNotice.displayName, /does not Force Refresh/);
+		assert.ok(markupNotice);
+		assert.match(markupNotice.displayName, /future TRMNL renders/);
+		assert.match(markupNotice.displayName, /does not Force Refresh/);
 	});
 
 	it('shows Stream Limit only for the stream merge strategy', () => {

@@ -1,0 +1,3 @@
+{
+	"content": "<div class=\"layout\">{% if status %}{{ status }}{% endif %}</div>"
+}
