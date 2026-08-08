@@ -2,6 +2,7 @@ import type { INodeProperties } from 'n8n-workflow';
 
 import { deviceProperties } from './device';
 import { markupFields, markupOperation } from './markup';
+import { pluginSettingProperties } from './pluginSetting';
 import { privatePluginFields, privatePluginOperation } from './privatePlugin';
 
 const resourceProperty: INodeProperties = {
@@ -22,6 +23,10 @@ const resourceProperty: INodeProperties = {
 			name: 'Private Plugin',
 			value: 'privatePlugin',
 		},
+		{
+			name: 'Plugin Setting',
+			value: 'pluginSetting',
+		},
 	],
 	default: 'privatePlugin',
 };
@@ -29,6 +34,7 @@ const resourceProperty: INodeProperties = {
 export const trmnlProperties: INodeProperties[] = [
 	resourceProperty,
 	...deviceProperties,
+	...pluginSettingProperties,
 	privatePluginOperation,
 	markupOperation,
 	...privatePluginFields,

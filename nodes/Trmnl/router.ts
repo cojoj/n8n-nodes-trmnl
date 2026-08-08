@@ -3,6 +3,11 @@ import { NodeOperationError } from 'n8n-workflow';
 
 import { getDevice, listDevices } from './actions/device';
 import { renderMarkup } from './actions/markup';
+import {
+	getPluginSettingData,
+	getPluginSettingDetails,
+	listPluginSettings,
+} from './actions/pluginSetting';
 import { getPrivatePluginContent, setPrivatePluginContent } from './actions/privatePlugin';
 
 export async function routeTrmnlOperation(
@@ -18,6 +23,18 @@ export async function routeTrmnlOperation(
 
 	if (resource === 'device' && operation === 'get') {
 		return [await getDevice.call(this, itemIndex)];
+	}
+
+	if (resource === 'pluginSetting' && operation === 'list') {
+		return await listPluginSettings.call(this, itemIndex);
+	}
+
+	if (resource === 'pluginSetting' && operation === 'getDetails') {
+		return [await getPluginSettingDetails.call(this, itemIndex)];
+	}
+
+	if (resource === 'pluginSetting' && operation === 'getData') {
+		return [await getPluginSettingData.call(this, itemIndex)];
 	}
 
 	if (resource === 'privatePlugin' && operation === 'setContent') {

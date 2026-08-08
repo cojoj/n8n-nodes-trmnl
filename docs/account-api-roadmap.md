@@ -1,6 +1,6 @@
 # TRMNL Account API Roadmap
 
-Research verified: 2026-08-02
+Research verified against the live OpenAPI specification: 2026-08-08
 
 This roadmap proposes the next authenticated TRMNL operations for the n8n node. It is a planning document, not an API commitment. Implementations should be checked against the current [TRMNL Account API documentation](https://docs.trmnl.com/go/private-api/account), [Display API documentation](https://docs.trmnl.com/go/private-api/screens), and [OpenAPI specification](https://trmnl.com/api-docs/openapi.yaml) when each slice begins.
 
@@ -14,19 +14,19 @@ Do not present this node as firmware, a TRMNL server replacement, or a way to pu
 
 ## Recommended Implementation Slices
 
-The first focused slice implements the read-only **Device > List** and **Device > Get** operations. The remaining discovery operations below are still roadmap items.
+The first focused slice includes the read-only **Device** and **Plugin Setting** discovery operations. Device reads shipped in 0.1.0; Plugin Setting reads are implemented for 0.2.0. Hosted acceptance remains a separate release gate from automated checks.
 
-### 1. Account discovery and plugin-setting reads
+### 1. Account discovery and plugin-setting reads — implemented
 
 Implement this first as one read-only PR:
 
 - **Device > List** — `GET /api/devices` (implemented)
 - **Device > Get** — `GET /api/devices/{id}` (implemented)
-- **Plugin Setting > List** — `GET /api/plugin_settings`, with the documented optional `plugin_id` filter
-- **Plugin Setting > Get Details** — `GET /api/plugin_settings/{uuid}/details`
-- **Plugin Setting > Get Data** — `GET /api/plugin_settings/{id-or-uuid}/data`
+- **Plugin Setting > List** — `GET /api/plugin_settings`, with the documented optional `plugin_id` filter (implemented for 0.2.0)
+- **Plugin Setting > Get Details** — `GET /api/plugin_settings/{uuid}/details` (implemented for 0.2.0)
+- **Plugin Setting > Get Data** — `GET /api/plugin_settings/{id-or-uuid}/data` (implemented for 0.2.0)
 
-Why first: it proves the unused Account API credential and shared authenticated transport without changing hosted state. It also gives later workflows the device IDs, plugin-setting IDs/UUIDs, strategy, and supported markup sizes they need.
+Why first: it proves the Account API credential and shared authenticated transport without changing hosted state. Live List and Details results must prove which IDs, UUIDs, strategies, and markup sizes are actually available before later operations promise dynamic selection.
 
 Implementation notes:
 
@@ -36,9 +36,11 @@ Implementation notes:
 - Do not assume pagination unless the API documents it.
 - Live-test the List Plugin Settings result before claiming it is a complete account inventory. Its OpenAPI operation is named “List my plugin settings,” but the current success description mentions a narrower calendar result.
 
-### 2. Plugin-setting data and markup management
+Hosted acceptance on 2026-08-08 confirmed the manual-string UX: the tested List response contained numeric setting and plugin IDs but no Plugin Setting UUID, while Get Details accepted a known UUID without returning that target UUID or an available-markup-size list. This is evidence for the tested account and setting, not a promise that TRMNL will never supply those fields. Keep the full response and revisit a dynamic selector only when live output reliably connects the required identifiers.
 
-Implement this second as a focused write-capable PR:
+### 2. Plugin-setting data and markup management — planned for 0.3.0 or later
+
+Implement this second as a focused write-capable PR, separate from the 0.2.0 read release:
 
 - **Plugin Setting > Update Data** — `POST /api/plugin_settings/{id-or-uuid}/data` with a JSON-object `merge_variables` body
 - **Plugin Setting > Read Markup** — `GET /api/plugin_settings/{uuid}/markup/{size}`

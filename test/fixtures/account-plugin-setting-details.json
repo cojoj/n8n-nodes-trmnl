@@ -1,0 +1,17 @@
+{
+  "data": {
+    "id": 31001,
+    "uuid": "00000000-0000-4000-8000-000000000001",
+    "name": "Synthetic Weather",
+    "strategy": "polling",
+    "available_markup_sizes": [
+      "markup_full",
+      "markup_half_horizontal",
+      "markup_half_vertical",
+      "markup_quadrant"
+    ],
+    "fixture_extension": {
+      "preserved": true
+    }
+  }
+}

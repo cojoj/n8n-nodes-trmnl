@@ -1,3 +1,9 @@
+# Unreleased
+
+- Added read-only Plugin Setting List, Get Details, and Get Data operations through the existing TRMNL Account API credential.
+- Added optional Plugin ID filtering, expression-friendly identifier validation, response preservation, array-to-items normalization, and credential-safe Account API errors.
+- Added synthetic fixtures, focused automated coverage, and a hosted acceptance matrix for the 0.2.0 Plugin Setting read slice.
+
 # 0.1.1
 
 - Added package contract fixtures and tests, and modularized the TRMNL node implementation without changing its resources or operations.
