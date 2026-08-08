@@ -53,8 +53,14 @@ describe('npm package contract', () => {
 
 		assert.ok(packedPaths.some((path) => path.startsWith('docs/')));
 		assert.ok(packedPaths.some((path) => path.startsWith('examples/')));
-		assert.equal(packedPaths.some((path) => path.startsWith('test/')), false);
-		assert.equal(packedPaths.some((path) => path.startsWith('credentials/')), false);
+		assert.equal(
+			packedPaths.some((path) => path.startsWith('test/')),
+			false,
+		);
+		assert.equal(
+			packedPaths.some((path) => path.startsWith('credentials/')),
+			false,
+		);
 		assert.equal(
 			packedPaths.some((path) => path.startsWith('nodes/') && !path.startsWith('dist/')),
 			false,

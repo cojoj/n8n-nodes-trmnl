@@ -18,7 +18,7 @@ export class Trmnl implements INodeType {
 		group: ['output'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Send workflow data to TRMNL and discover account resources',
+		description: 'Send workflow data to TRMNL and manage account resources',
 		defaults: {
 			name: 'TRMNL',
 		},

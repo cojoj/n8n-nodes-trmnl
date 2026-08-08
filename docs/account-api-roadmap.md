@@ -14,7 +14,7 @@ Do not present this node as firmware, a TRMNL server replacement, or a way to pu
 
 ## Recommended Implementation Slices
 
-The first focused slice includes the read-only **Device** and **Plugin Setting** discovery operations. Device reads shipped in 0.1.0; Plugin Setting reads are implemented for 0.2.0. Hosted acceptance remains a separate release gate from automated checks.
+The first focused slice includes the read-only **Device** and **Plugin Setting** discovery operations. Device reads shipped in 0.1.0; Plugin Setting reads shipped in 0.2.0. The second slice adds Plugin Setting data and markup management for 0.3.0. Hosted acceptance remains a separate release gate from automated checks.
 
 ### 1. Account discovery and plugin-setting reads — implemented
 
@@ -38,9 +38,9 @@ Implementation notes:
 
 Hosted acceptance on 2026-08-08 confirmed the manual-string UX: the tested List response contained numeric setting and plugin IDs but no Plugin Setting UUID, while Get Details accepted a known UUID without returning that target UUID or an available-markup-size list. This is evidence for the tested account and setting, not a promise that TRMNL will never supply those fields. Keep the full response and revisit a dynamic selector only when live output reliably connects the required identifiers.
 
-### 2. Plugin-setting data and markup management — planned for 0.3.0 or later
+### 2. Plugin-setting data and markup management — implemented for 0.3.0
 
-Implement this second as a focused write-capable PR, separate from the 0.2.0 read release:
+Implemented as a focused write-capable PR, separate from the 0.2.0 read release:
 
 - **Plugin Setting > Update Data** — `POST /api/plugin_settings/{id-or-uuid}/data` with a JSON-object `merge_variables` body
 - **Plugin Setting > Read Markup** — `GET /api/plugin_settings/{uuid}/markup/{size}`
@@ -56,6 +56,16 @@ Safety and UX requirements:
 - Obtain or validate markup sizes from plugin-setting details. The OpenAPI only gives `markup_full` as an example and does not define a closed enum.
 - Echo the target UUID, size, and operation in the n8n output, but never echo the Account API key.
 - Add mocked operation tests plus live acceptance against a disposable Private Plugin before describing hosted behavior as proven.
+
+Implementation details:
+
+- Update Data reuses the existing native typed-fields and JSON-object helpers and sends only `merge_variables`.
+- Read Markup accepts both raw-text and TRMNL's live wrapped markup response, then exposes the exact returned markup string without interpreting Liquid.
+- Write Markup uses a `noDataExpression` field so Liquid braces are not evaluated as n8n expressions.
+- Identifiers and size values are validated as safe path segments before HTTP; markup sizes remain open strings rather than a closed enum.
+- The shared transport maps write-data and markup-size `422` errors by operation context and does not retry writes.
+
+Live acceptance passed on 2026-08-08 with a newly created disposable Webhook Plugin Setting. The setting's `markup_full` size was initialized in the console, then local n8n proved Update Data, Read Markup, Write Markup, hosted saved state, an 800×480 rendered preview, and exact source restoration. The disposable setting was deleted afterward. No Force Refresh or physical-device delivery claim was made.
 
 ### 3. Playlist visibility
 

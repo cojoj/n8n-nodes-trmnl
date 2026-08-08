@@ -1,0 +1,6 @@
+{
+	"data": {
+		"size": "markup_full",
+		"content": "<div class=\"layout\">{% if status %}{{ status }}{% endif %}</div>"
+	}
+}

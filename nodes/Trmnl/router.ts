@@ -7,6 +7,9 @@ import {
 	getPluginSettingData,
 	getPluginSettingDetails,
 	listPluginSettings,
+	readPluginSettingMarkup,
+	updatePluginSettingData,
+	writePluginSettingMarkup,
 } from './actions/pluginSetting';
 import { getPrivatePluginContent, setPrivatePluginContent } from './actions/privatePlugin';
 
@@ -35,6 +38,18 @@ export async function routeTrmnlOperation(
 
 	if (resource === 'pluginSetting' && operation === 'getData') {
 		return [await getPluginSettingData.call(this, itemIndex)];
+	}
+
+	if (resource === 'pluginSetting' && operation === 'updateData') {
+		return [await updatePluginSettingData.call(this, itemIndex)];
+	}
+
+	if (resource === 'pluginSetting' && operation === 'readMarkup') {
+		return [await readPluginSettingMarkup.call(this, itemIndex)];
+	}
+
+	if (resource === 'pluginSetting' && operation === 'writeMarkup') {
+		return [await writePluginSettingMarkup.call(this, itemIndex)];
 	}
 
 	if (resource === 'privatePlugin' && operation === 'setContent') {

@@ -6,3 +6,6 @@ webhook headers, or account data.
 
 When an API contract changes, update the smallest relevant fixture and keep assertions for
 the request sent by the node separate from assertions for the response it returns.
+
+Plugin Setting write and markup fixtures use synthetic identifiers and harmless Liquid snippets
+only. Live backup content and acceptance markers must remain outside the repository.

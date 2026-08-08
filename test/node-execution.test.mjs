@@ -75,6 +75,17 @@ function setContentParameters(overrides = {}) {
 	};
 }
 
+function updateDataParameters(overrides = {}) {
+	return {
+		resource: 'pluginSetting',
+		operation: 'updateData',
+		pluginSettingId: '31001',
+		pluginSettingDataMode: 'json',
+		pluginSettingData: '{"status":"ready"}',
+		...overrides,
+	};
+}
+
 describe('TRMNL node execution', () => {
 	it('lists devices with Account API authentication and preserves each device', async () => {
 		const httpResponse = loadFixture('account-devices-list.json');
@@ -257,14 +268,181 @@ describe('TRMNL node execution', () => {
 		assert.deepEqual(uuid.result[0][0].json, httpResponse);
 	});
 
+	it('updates Plugin Setting data by numeric ID or UUID with the exact Account API body', async () => {
+		const httpResponse = loadFixture('account-plugin-setting-data-update.json');
+		const numeric = await executeWith({
+			parameters: updateDataParameters(),
+			httpResponse,
+		});
+		const uuid = await executeWith({
+			parameters: updateDataParameters({
+				pluginSettingId: '00000000-0000-4000-8000-000000000001',
+			}),
+			httpResponse,
+		});
+
+		assert.deepEqual(numeric.requests, [
+			{
+				authentication: 'trmnlAccountApi',
+				options: {
+					method: 'POST',
+					url: 'https://trmnl.com/api/plugin_settings/31001/data',
+					headers: { 'Content-Type': 'application/json' },
+					body: { merge_variables: { status: 'ready' } },
+					json: true,
+				},
+			},
+		]);
+		assert.equal(
+			uuid.requests[0].options.url,
+			'https://trmnl.com/api/plugin_settings/00000000-0000-4000-8000-000000000001/data',
+		);
+		assert.deepEqual(numeric.result[0][0].json, {
+			operation: 'updateData',
+			success: true,
+			pluginSettingId: '31001',
+			response: httpResponse,
+		});
+	});
+
+	it('extracts literal markup from the live wrapped Account API response', async () => {
+		const httpResponse = loadFixture('account-plugin-setting-markup-response.json');
+		const pluginSettingUuid = '00000000-0000-4000-8000-000000000001';
+		const { result } = await executeWith({
+			parameters: {
+				resource: 'pluginSetting',
+				operation: 'readMarkup',
+				pluginSettingUuid,
+				markupSize: 'markup_full',
+			},
+			httpResponse,
+		});
+
+		assert.equal(result[0][0].json.content, httpResponse.data.markup);
+		assert.match(result[0][0].json.content, /\r\n/);
+		assert.deepEqual(result[0][0].json.response, httpResponse);
+	});
+
+	it('builds Plugin Setting data updates from native typed fields', async () => {
+		const { requests } = await executeWith({
+			parameters: updateDataParameters({
+				pluginSettingDataMode: 'fields',
+				pluginSettingDataAssignments: {
+					assignments: [
+						{ name: 'count', type: 'number', value: '2' },
+						{ name: 'active', type: 'boolean', value: 'true' },
+					],
+				},
+			}),
+		});
+
+		assert.deepEqual(requests[0].options.body, {
+			merge_variables: { count: 2, active: true },
+		});
+	});
+
+	it('rejects invalid Plugin Setting update JSON before making a request', async () => {
+		for (const pluginSettingData of ['{"status":}', '[]']) {
+			const { context, requests } = createExecuteContext({
+				parameters: updateDataParameters({ pluginSettingData }),
+			});
+
+			await assert.rejects(new Trmnl().execute.call(context), /Merge Variables must/);
+			assert.equal(requests.length, 0);
+		}
+	});
+
+	it('reads Plugin Setting markup as exact literal text', async () => {
+		const { content } = loadFixture('account-plugin-setting-markup.json');
+		const pluginSettingUuid = '00000000-0000-4000-8000-000000000001';
+		const { result, requests } = await executeWith({
+			parameters: {
+				resource: 'pluginSetting',
+				operation: 'readMarkup',
+				pluginSettingUuid,
+				markupSize: 'markup_custom_landscape',
+			},
+			httpResponse: content,
+		});
+
+		assert.deepEqual(requests, [
+			{
+				authentication: 'trmnlAccountApi',
+				options: {
+					method: 'GET',
+					url: `https://trmnl.com/api/plugin_settings/${pluginSettingUuid}/markup/markup_custom_landscape`,
+					json: false,
+				},
+			},
+		]);
+		assert.deepEqual(result[0][0].json, {
+			operation: 'readMarkup',
+			success: true,
+			pluginSettingUuid,
+			size: 'markup_custom_landscape',
+			content,
+			response: { data: content },
+		});
+	});
+
+	it('writes Plugin Setting markup literally with the exact Account API body', async () => {
+		const httpResponse = loadFixture('account-plugin-setting-markup-write.json');
+		const pluginSettingUuid = '00000000-0000-4000-8000-000000000001';
+		const content = '<div>{% if status %}{{ status }}{% endif %}</div>\n';
+		const { result, requests } = await executeWith({
+			parameters: {
+				resource: 'pluginSetting',
+				operation: 'writeMarkup',
+				pluginSettingUuid,
+				markupSize: 'markup_full',
+				pluginSettingMarkup: content,
+			},
+			httpResponse,
+		});
+
+		assert.deepEqual(requests, [
+			{
+				authentication: 'trmnlAccountApi',
+				options: {
+					method: 'PUT',
+					url: `https://trmnl.com/api/plugin_settings/${pluginSettingUuid}/markup/markup_full`,
+					headers: { 'Content-Type': 'application/json' },
+					body: { content },
+					json: true,
+				},
+			},
+		]);
+		assert.deepEqual(result[0][0].json, {
+			operation: 'writeMarkup',
+			success: true,
+			pluginSettingUuid,
+			size: 'markup_full',
+			response: httpResponse,
+		});
+	});
+
 	it('rejects invalid Plugin Setting identifiers before making requests', async () => {
 		for (const parameters of [
 			{ resource: 'pluginSetting', operation: 'list', pluginId: 'weather' },
 			{ resource: 'pluginSetting', operation: 'getDetails', pluginSettingUuid: '../details' },
 			{ resource: 'pluginSetting', operation: 'getData', pluginSettingId: '0' },
+			updateDataParameters({ pluginSettingId: '../data' }),
+			{
+				resource: 'pluginSetting',
+				operation: 'readMarkup',
+				pluginSettingUuid: '00000000-0000-4000-8000-000000000001',
+				markupSize: '../markup_full',
+			},
+			{
+				resource: 'pluginSetting',
+				operation: 'writeMarkup',
+				pluginSettingUuid: 'bad/uuid',
+				markupSize: 'markup_full',
+				pluginSettingMarkup: 'Synthetic markup',
+			},
 		]) {
 			const { context, requests } = createExecuteContext({ parameters });
-			await assert.rejects(new Trmnl().execute.call(context), /Plugin (ID|Setting)/);
+			await assert.rejects(new Trmnl().execute.call(context), /Plugin (ID|Setting)|Markup Size/);
 			assert.equal(requests.length, 0);
 		}
 	});
@@ -293,6 +471,21 @@ describe('TRMNL node execution', () => {
 				},
 				statusCode: 422,
 				message: /no data available for this Plugin Setting/,
+			},
+			{
+				parameters: updateDataParameters(),
+				statusCode: 422,
+				message: /cannot modify data for this Plugin Setting/,
+			},
+			{
+				parameters: {
+					resource: 'pluginSetting',
+					operation: 'readMarkup',
+					pluginSettingUuid: '00000000-0000-4000-8000-000000000001',
+					markupSize: 'markup_custom',
+				},
+				statusCode: 422,
+				message: /rejected this markup size/,
 			},
 		];
 
@@ -545,5 +738,32 @@ describe('TRMNL node execution', () => {
 				},
 			],
 		]);
+	});
+
+	it('does not retry Plugin Setting writes and preserves pairing on Continue On Fail', async () => {
+		const secret = 'user_fixture_secret_must_not_escape';
+		const httpError = Object.assign(new Error(`Rejected ${secret}`), {
+			statusCode: 422,
+			response: { body: { message: secret } },
+		});
+		const { result, requests } = await executeWith({
+			parameters: updateDataParameters(),
+			httpError,
+			continueOnFail: true,
+		});
+
+		assert.equal(requests.length, 1);
+		assert.deepEqual(result, [
+			[
+				{
+					json: {
+						error:
+							'TRMNL cannot modify data for this Plugin Setting. The setting may not support Account API data updates.',
+					},
+					pairedItem: { item: 0 },
+				},
+			],
+		]);
+		assert.doesNotMatch(JSON.stringify(result), new RegExp(secret));
 	});
 });

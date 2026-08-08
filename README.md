@@ -8,7 +8,7 @@
 <h1 align="center">n8n-nodes-trmnl</h1>
 
 <p align="center">
-  Connect n8n workflows to TRMNL Private Plugins and read-only Account API resources.
+  Connect n8n workflows to TRMNL Private Plugins and Account API resources.
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@ n8n workflow -> TRMNL node -> Private Plugin webhook -> TRMNL render -> device r
 
 Polling is the inverse flow: TRMNL calls an active n8n workflow and the workflow supplies the screen data. This path has been validated against hosted TRMNL through the rendered markup preview.
 
-The Account API surface provides read-only Device and Plugin Setting discovery. The three Plugin Setting operations were exercised through local n8n against hosted TRMNL on 2026-08-08 with redacted evidence; repeated GETs left the tested plugin settings, markup, playlist, and device views unchanged. Automated fixtures and hosted acceptance remain tracked separately in [docs/manual-test-matrix.md](docs/manual-test-matrix.md) because a green build alone does not prove live TRMNL behavior.
+The Account API surface provides read-only Device discovery plus Plugin Setting reads, server-side data updates, and markup management. The operations were exercised through local n8n against hosted TRMNL on 2026-08-08 with redacted evidence, including a disposable Plugin Setting, rendered markup preview, and exact source restoration. See [docs/manual-test-matrix.md](docs/manual-test-matrix.md) for the separate n8n, hosted-state, preview, restoration, and physical-device evidence boundaries.
 
 The node uses TRMNL's official glyphs from its [Brand Assets](https://trmnl.com/brand) page. See [docs/brand-assets.md](docs/brand-assets.md) for provenance. This is an independent community project; TRMNL and n8n are trademarks of their respective owners.
 
@@ -86,8 +86,11 @@ These read-only Account API operations return TRMNL's documented device data for
 - **List**: calls `GET /api/plugin_settings` and returns one n8n item per setting when TRMNL supplies a `data` array. The optional **Plugin ID** filter accepts a numeric plugin ID or the documented `calendars` value.
 - **Get Details**: gets one setting by its Plugin Setting UUID and preserves the fields TRMNL returns, including available markup sizes when supplied.
 - **Get Data**: gets the current data for a setting by numeric ID or UUID without imposing a fixed schema on the returned object.
+- **Read Markup**: gets the exact saved Liquid markup for a Plugin Setting UUID and size. **Markup Size** is an expression-friendly string with `markup_full` as the default; use a size returned by Get Details when available.
+- **Update Data**: posts exactly one JSON-object `merge_variables` payload by numeric ID or UUID. Choose native typed fields or JSON input.
+- **Write Markup**: saves literal Liquid markup for a Plugin Setting UUID and size. The markup field does not evaluate n8n expressions, so `{{ ... }}` and `{% ... %}` remain unchanged.
 
-These operations use the read-only endpoints documented for this release. They do not update plugin data or markup, mutate settings, change playlists, refresh devices, or claim that List is a complete account inventory. Identifiers use normal string fields so expressions can pass them between workflow steps; a dynamic selector is intentionally deferred until live responses prove that later markup identifiers are available.
+List, Get Details, Get Data, and Read Markup are read-only. Update Data mutates hosted Plugin Setting data, while Write Markup changes the template used on future TRMNL renders. Neither write operation is Force Refresh or proof of an immediate physical-device update. Identifiers and markup sizes use normal string fields so expressions can pass them between workflow steps; a dynamic selector is intentionally deferred until live responses reliably connect the required identifiers and available sizes.
 
 In the 2026-08-08 hosted acceptance target, List supplied numeric setting and plugin IDs but no Plugin Setting UUID. Get Details accepted a known UUID but did not return that target UUID or an available-markup-size list. These observations are account/setting specific, so the node preserves future response fields without turning them into a fixed selector contract.
 
@@ -144,11 +147,11 @@ Stores the header name and secret value used to authenticate incoming Polling re
 
 ### TRMNL Account API
 
-Stores a `user_` TRMNL Account API key for authenticated API features. TRMNL requires a developer license for this API. Use it with **Device** -> **List** or **Get**, and **Plugin Setting** -> **List**, **Get Details**, or **Get Data**, for read-only account discovery.
+Stores a `user_` TRMNL Account API key for authenticated API features. TRMNL requires a developer license for this API. Use it with **Device** -> **List** or **Get**, and all **Plugin Setting** operations. Update Data and Write Markup modify hosted state; the other Account API operations are read-only.
 
-The Device Display API/BYOD endpoints (`/api/display`, `/api/current_screen`, and other screen-image retrieval routes) use a different credential boundary and remain out of scope. Private Plugin webhooks remain the supported content-update path in this node, and device refresh remains pull/check-in based.
+The Device Display API/BYOD endpoints (`/api/display`, `/api/current_screen`, and other screen-image retrieval routes) use a different credential boundary and remain out of scope. Private Plugin webhooks remain the simplest webhook content-update path, while Account API Update Data and Write Markup target an existing Plugin Setting. Device refresh remains pull/check-in based.
 
-See the [Account API roadmap](docs/account-api-roadmap.md) for the implemented discovery slice and the separately scoped write, playlist, and device work.
+See the [Account API roadmap](docs/account-api-roadmap.md) for the implemented Plugin Setting slices and separately scoped playlist and device work.
 
 TRMNL account API docs: https://docs.trmnl.com/go/private-api/account
 
