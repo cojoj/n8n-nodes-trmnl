@@ -1,0 +1,14 @@
+{
+	"headers": {
+		"authorization": "redacted-not-forwarded"
+	},
+	"body": {
+		"source": "fixture"
+	},
+	"query": {
+		"screen": "full"
+	},
+	"params": {
+		"plugin": "fixture-plugin"
+	}
+}

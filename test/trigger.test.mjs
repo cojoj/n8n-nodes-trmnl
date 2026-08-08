@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { TrmnlTrigger } from '../dist/nodes/Trmnl/TrmnlTrigger.node.js';
+import { loadFixture } from './helpers/load-fixture.mjs';
 
 function createWebhookContext({
 	parameters = { httpMethod: 'GET', authentication: 'none' },
@@ -83,12 +84,10 @@ describe('TRMNL Trigger', () => {
 	});
 
 	it('emits request data without copying inbound headers into the workflow', async () => {
+		const pollingRequest = loadFixture('polling-request.json');
 		const { context } = createWebhookContext({
 			parameters: { httpMethod: 'POST', authentication: 'none' },
-			headers: { authorization: 'secret-value' },
-			body: { source: 'trmnl' },
-			query: { screen: 'full' },
-			params: { plugin: 'test' },
+			...pollingRequest,
 		});
 		const result = await new TrmnlTrigger().webhook.call(context);
 
@@ -99,9 +98,9 @@ describe('TRMNL Trigger', () => {
 						json: {
 							event: 'polling',
 							requestMethod: 'POST',
-							query: { screen: 'full' },
-							params: { plugin: 'test' },
-							body: { source: 'trmnl' },
+							query: pollingRequest.query,
+							params: pollingRequest.params,
+							body: pollingRequest.body,
 						},
 					},
 				],

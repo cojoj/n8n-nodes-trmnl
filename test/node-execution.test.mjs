@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { describe, it } from 'node:test';
 
 import { Trmnl } from '../dist/nodes/Trmnl/Trmnl.node.js';
+import { loadFixture } from './helpers/load-fixture.mjs';
 
 const require = createRequire(import.meta.url);
 const { NodeApiError } = require('n8n-workflow');
@@ -76,23 +77,11 @@ function setContentParameters(overrides = {}) {
 
 describe('TRMNL node execution', () => {
 	it('lists devices with Account API authentication and preserves each device', async () => {
-		const devices = [
-			{
-				id: 123456,
-				name: 'Office TRMNL',
-				friendly_id: 'A1B2C3',
-				battery_voltage: 3.9,
-			},
-			{
-				id: 654321,
-				name: 'Kitchen TRMNL',
-				friendly_id: 'D4E5F6',
-				rssi: -41,
-			},
-		];
+		const httpResponse = loadFixture('account-devices-list.json');
+		const devices = httpResponse.data;
 		const { result, requests } = await executeWith({
 			parameters: { resource: 'device', operation: 'list' },
-			httpResponse: { data: devices },
+			httpResponse,
 		});
 
 		assert.deepEqual(requests, [
@@ -113,15 +102,11 @@ describe('TRMNL node execution', () => {
 	});
 
 	it('gets a device with Account API authentication and preserves its data', async () => {
-		const device = {
-			id: 123456,
-			name: 'Office TRMNL',
-			friendly_id: 'A1B2C3',
-			last_ping_at: '2026-08-02T19:45:00.000Z',
-		};
+		const httpResponse = loadFixture('account-device-get.json');
+		const device = httpResponse.data;
 		const { result, requests } = await executeWith({
-			parameters: { resource: 'device', operation: 'get', deviceId: '123456' },
-			httpResponse: { data: device },
+			parameters: { resource: 'device', operation: 'get', deviceId: '101001' },
+			httpResponse,
 		});
 
 		assert.deepEqual(requests, [
@@ -129,7 +114,7 @@ describe('TRMNL node execution', () => {
 				authentication: 'trmnlAccountApi',
 				options: {
 					method: 'GET',
-					url: 'https://trmnl.com/api/devices/123456',
+					url: 'https://trmnl.com/api/devices/101001',
 					json: true,
 				},
 			},
@@ -157,9 +142,10 @@ describe('TRMNL node execution', () => {
 	});
 
 	it('posts Set Content and returns diagnostic output', async () => {
+		const httpResponse = loadFixture('private-plugin-set-content.json');
 		const { result, requests } = await executeWith({
 			parameters: setContentParameters(),
-			httpResponse: { message: 'updated' },
+			httpResponse,
 		});
 
 		assert.equal(requests.length, 1);
@@ -179,14 +165,15 @@ describe('TRMNL node execution', () => {
 			mergeVariables: { title: 'Hello' },
 			mergeStrategy: 'replace',
 			deviceUpdate: 'next_refresh',
-			response: { message: 'updated' },
+			response: httpResponse,
 		});
 	});
 
 	it('gets current Private Plugin content from the webhook endpoint', async () => {
+		const httpResponse = loadFixture('private-plugin-get-content.json');
 		const { result, requests } = await executeWith({
 			parameters: { resource: 'privatePlugin', operation: 'getContent' },
-			httpResponse: { merge_variables: { title: 'Stored' } },
+			httpResponse,
 		});
 
 		assert.deepEqual(requests, [
@@ -202,20 +189,21 @@ describe('TRMNL node execution', () => {
 		assert.deepEqual(result[0][0].json, {
 			operation: 'getContent',
 			success: true,
-			response: { merge_variables: { title: 'Stored' } },
+			response: httpResponse,
 		});
 	});
 
 	it('renders Liquid markup without Private Plugin credentials', async () => {
+		const httpResponse = loadFixture('markup-render.json');
 		const { result, requests } = await executeWith({
 			parameters: {
 				resource: 'markup',
 				operation: 'render',
 				markup: 'Hello, {{ name }}!',
 				variablesMode: 'json',
-				variables: '{"name":"World"}',
+				variables: '{"name":"Fixture"}',
 			},
-			httpResponse: { data: 'Hello, World!' },
+			httpResponse,
 		});
 
 		assert.deepEqual(requests, [
@@ -227,7 +215,7 @@ describe('TRMNL node execution', () => {
 					headers: { 'Content-Type': 'application/json' },
 					body: {
 						markup: 'Hello, {{ name }}!',
-						variables: { name: 'World' },
+						variables: { name: 'Fixture' },
 					},
 					json: true,
 				},
@@ -236,9 +224,9 @@ describe('TRMNL node execution', () => {
 		assert.deepEqual(result[0][0].json, {
 			operation: 'render',
 			success: true,
-			variables: { name: 'World' },
-			rendered: 'Hello, World!',
-			response: { data: 'Hello, World!' },
+			variables: { name: 'Fixture' },
+			rendered: 'Hello, Fixture!',
+			response: httpResponse,
 		});
 	});
 
