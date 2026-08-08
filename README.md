@@ -160,6 +160,8 @@ For development, use **Force Refresh** on the TRMNL plugin settings page, then w
 
 ## Resources
 
+- [Contributing guide](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
 - [TRMNL API docs](https://docs.trmnl.com/go)
 - [TRMNL Private Plugin webhook docs](https://docs.trmnl.com/go/private-plugins/create-a-screen)
 - [TRMNL refresh behavior](https://help.trmnl.com/en/articles/10113695-how-refresh-rates-work)
