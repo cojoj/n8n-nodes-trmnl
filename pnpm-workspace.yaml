@@ -7,6 +7,9 @@ allowBuilds:
   ssh2: false
   unrs-resolver: true
 
+# Keep a shorter cooling-off period for fast-moving n8n releases.
+minimumReleaseAge: 360
+
 overrides:
   'axios@>=1.0.0 <1.18.0': ^1.18.0
   'brace-expansion@<1.1.18': ^1.1.18
