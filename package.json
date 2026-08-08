@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-trmnl",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"packageManager": "pnpm@11.18.0",
 	"description": "n8n community nodes for TRMNL Private Plugins and read-only Account API discovery.",
 	"license": "MIT",
