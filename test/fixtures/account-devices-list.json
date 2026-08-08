@@ -1,0 +1,16 @@
+{
+	"data": [
+		{
+			"id": 101001,
+			"name": "Fixture Display A",
+			"friendly_id": "ABC123",
+			"battery_voltage": 3.9
+		},
+		{
+			"id": 202002,
+			"name": "Fixture Display B",
+			"friendly_id": "DEF456",
+			"rssi": -41
+		}
+	]
+}
