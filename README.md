@@ -20,6 +20,9 @@ This is an independent n8n community node for sending data to and serving data f
 
 TRMNL devices are pull-based: n8n sends data to TRMNL, TRMNL renders the screen, and the device shows it on the next refresh. This node does not push directly to the hardware.
 
+<!-- npm-release-notes:start -->
+<!-- npm-release-notes:end -->
+
 ## Project Status
 
 This project is in an MVP state. The core loop has been validated with a real TRMNL Private Plugin and physical TRMNL device:

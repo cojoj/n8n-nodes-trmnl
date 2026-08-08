@@ -1,54 +1,44 @@
 # Releasing
 
-Publishing a stable GitHub Release deploys the matching package version to npm.
+Publishing a stable GitHub Release deploys that release to npm. The release tag
+is the source of the npm package version, and the GitHub Release body becomes a
+temporary **What's new** section near the top of the README rendered on
+npmjs.com. Neither change is committed back to the repository.
+
 The publish workflow uses npm Trusted Publishing through GitHub OIDC and creates
 provenance automatically; it does not use a long-lived npm token.
 
-## Prepare the version
-
-1. Create a release preparation branch from `main`.
-2. Set the intended version without creating a tag:
-
-   ```sh
-   pnpm version VERSION --no-git-tag-version
-   ```
-
-3. Add a matching `# <version>` entry at the top of `CHANGELOG.md`.
-4. Run `pnpm test` and `pnpm lint`, then merge the preparation pull request.
-
-Do not run `pnpm release` locally. Outside GitHub Actions, that command owns the
-version bump, changelog, tag, push, and GitHub Release, which bypasses the
-button-driven flow below.
-
-## Sign the tag
-
-After the preparation pull request is merged, update local `main` and create an
-annotated, signed tag for its release commit:
-
-```sh
-git switch main
-git pull --ff-only
-git tag -s vVERSION -m "Release vVERSION"
-git verify-tag vVERSION
-git push origin vVERSION
-```
-
-Replace `VERSION` with the intended package version. For example, package
-version `0.2.0` must use tag `v0.2.0`. Select this existing tag in GitHub; do
-not create the tag in the release form.
-
 ## Publish from GitHub
 
-1. Open **Releases**, then click **Draft a new release**.
-2. Select the existing signed `v<version>` tag.
-3. Click **Generate release notes**. GitHub categorizes merged pull requests
-   using `.github/release.yml` and adds the full changelog link and contributors.
-4. Review the generated notes against `CHANGELOG.md`. Leave **Set as a
-   pre-release** clear for a stable npm release.
-5. Click **Publish release**. This button triggers `.github/workflows/publish.yml`.
+1. Merge every pull request intended for the release and confirm required CI is
+   passing on `main`.
+2. Open **Releases**, then click **Draft a new release**.
+3. In **Choose a tag**, enter a new stable `v<major>.<minor>.<patch>` tag, choose
+   **Create new tag**, and target `main`.
+4. Click **Generate release notes**. GitHub categorizes merged pull requests
+   using `.github/release.yml` and adds the comparison link and contributors.
+5. Review the generated notes. These notes will be visible both on the GitHub
+   Release and in the README published to npm. Leave **Set as a pre-release**
+   clear for a stable npm release.
+6. Click **Publish release**. This button triggers
+   `.github/workflows/publish.yml`.
 
-The workflow checks out the released tag and requires the tag to equal `v` plus
-the version in `package.json`. A mismatch stops before installation or npm
-publishing. Stable releases then run the n8n lint/build release path and publish
-through the existing npm Trusted Publisher with provenance. Pre-releases are
-intentionally skipped until an npm dist-tag policy is added.
+The workflow checks out the released tag and refuses to publish unless the tag
+uses stable semantic versioning and points to a commit on `main`. It then:
+
+1. stamps `package.json` with the version derived from the tag;
+2. inserts the release body between the npm-only markers in `README.md`;
+3. runs the n8n lint and build release path; and
+4. publishes through the existing npm Trusted Publisher with provenance.
+
+GitHub Releases are the canonical release history. The package version and
+npm-visible release section exist only in the published artifact. npm packages
+are immutable, so later edits to a GitHub Release do not change an already
+published package README.
+
+Do not run `pnpm release` locally. Outside GitHub Actions, that command owns the
+version bump, tag, push, and GitHub Release, which bypasses this button-driven
+flow and does not have the release event used to build the npm README.
+
+Pre-releases remain intentionally skipped until an npm dist-tag policy is
+added.

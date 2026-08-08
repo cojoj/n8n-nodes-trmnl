@@ -25,5 +25,5 @@ internal changes.
   compatible, or the breaking change was discussed first.
 - [ ] No real credentials, webhook URLs, plugin UUIDs, polling headers, account
   data, device identifiers, or other secrets are included.
-- [ ] The package version and changelog are unchanged unless this pull request
-  is explicit release preparation.
+- [ ] The package version and npm release notes are unchanged; the publish
+  workflow derives both from the GitHub Release.

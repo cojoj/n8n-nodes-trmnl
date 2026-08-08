@@ -44,8 +44,8 @@ live TRMNL service.
 - Keep credentials narrowly scoped. Secret fields must stay masked, and
   credentials, webhook URLs, API keys, header values, or account data must
   never be logged or committed.
-- Do not bump the package version in a normal contribution. Version and
-  changelog changes belong to release preparation.
+- Do not bump the package version or add release notes in a normal
+  contribution. The publish workflow derives both from the GitHub Release.
 
 ## Dependency Maintenance
 
