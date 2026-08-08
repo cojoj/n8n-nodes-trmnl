@@ -1,3 +1,10 @@
+# 0.1.1
+
+- Added package contract fixtures and tests, and modularized the TRMNL node implementation without changing its resources or operations.
+- Remediated vulnerable transitive dependencies and upgraded the n8n node toolchain with a scheduled latest-version compatibility check.
+- Added GitHub Release-triggered publishing through npm Trusted Publishing, along with signed-tag release guidance and restricted workflow permissions.
+- Added contribution and security policies plus pull request and generated-release templates.
+
 # 0.1.0
 
 - Added Private Plugin Set Content and Get Content operations with Replace, Deep Merge, and Stream strategies.
