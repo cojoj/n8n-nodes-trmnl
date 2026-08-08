@@ -166,3 +166,4 @@ For development, use **Force Refresh** on the TRMNL plugin settings page, then w
 - [TRMNL OpenAPI spec](https://trmnl.com/api-docs/openapi.yaml)
 - [n8n creating nodes docs](https://docs.n8n.io/integrations/creating-nodes/overview/)
 - [n8n community nodes docs](https://docs.n8n.io/integrations/community-nodes/)
+- [Maintainer release process](docs/releasing.md)
