@@ -1,8 +1,10 @@
 allowBuilds:
-  cpu-features: true
+  # Optional native SSH acceleration pulled by newer n8n-workflow versions.
+  # This package does not use SSH, so its install scripts remain disabled.
+  cpu-features: false
   eslint-plugin-n8n-nodes-base: true
   isolated-vm: true
-  ssh2: true
+  ssh2: false
   unrs-resolver: true
 
 overrides:

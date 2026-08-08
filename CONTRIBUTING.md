@@ -47,6 +47,28 @@ live TRMNL service.
 - Do not bump the package version in a normal contribution. Version and
   changelog changes belong to release preparation.
 
+## Dependency Maintenance
+
+The `Latest n8n Compatibility` workflow runs daily. It updates
+`@n8n/node-cli` only inside an isolated, read-only runner and executes the full
+build and test suite. It does not commit changes, open pull requests, publish
+packages, or prove that an update is ready to merge.
+
+Review the complete development toolchain weekly with:
+
+```bash
+pnpm outdated
+pnpm audit
+```
+
+Group compatible minor and patch updates into one focused pull request. Keep at
+most one dependency-maintenance pull request open at a time; merge or close it
+before starting another. Review major updates separately. When adopting an
+update, inspect the manifest and lockfile diff, remove obsolete security
+overrides where possible, and run `pnpm test`, `pnpm lint`, and
+`pnpm pack --dry-run`. Handle actionable security updates immediately rather
+than waiting for the weekly review.
+
 ## Tests and Fixtures
 
 Add or update automated coverage for behavior changes. Keep request assertions
