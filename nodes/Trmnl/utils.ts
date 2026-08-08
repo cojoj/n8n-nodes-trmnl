@@ -21,6 +21,16 @@ export function isApiError(error: unknown): error is JsonObject {
 	return Boolean(maybeApiError.response ?? maybeApiError.statusCode ?? maybeApiError.httpCode);
 }
 
+export function getSanitizedApiErrorMessage(error: unknown): string | undefined {
+	if (!(error instanceof Error)) {
+		return undefined;
+	}
+
+	return (error as Error & { trmnlSanitized?: unknown }).trmnlSanitized === true
+		? error.message
+		: undefined;
+}
+
 export function unwrapValidationResult<T>(
 	result: { ok: true; value: T } | { ok: false; error: string },
 	executeFunctions: IExecuteFunctions,

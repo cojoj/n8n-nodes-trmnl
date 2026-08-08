@@ -1,0 +1,24 @@
+{
+  "data": [
+    {
+      "id": 31001,
+      "name": "Synthetic Weather",
+      "description": "Redacted fixture instance",
+      "plugin_id": 101,
+      "icon_url": null,
+      "icon_content_type": null,
+      "read_only?": false,
+      "strategy": "polling"
+    },
+    {
+      "id": 31002,
+      "name": "Synthetic Calendar",
+      "description": null,
+      "plugin_id": 102,
+      "icon_url": "https://example.invalid/plugin-icon.png",
+      "icon_content_type": "image/png",
+      "read_only?": true,
+      "strategy": null
+    }
+  ]
+}

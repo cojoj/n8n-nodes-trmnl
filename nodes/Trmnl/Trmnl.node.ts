@@ -8,7 +8,7 @@ import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workf
 
 import { trmnlProperties } from './descriptions';
 import { routeTrmnlOperation } from './router';
-import { isApiError } from './utils';
+import { getSanitizedApiErrorMessage, isApiError } from './utils';
 
 export class Trmnl implements INodeType {
 	description: INodeTypeDescription = {
@@ -18,7 +18,7 @@ export class Trmnl implements INodeType {
 		group: ['output'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Send workflow data to TRMNL and discover account devices',
+		description: 'Send workflow data to TRMNL and discover account resources',
 		defaults: {
 			name: 'TRMNL',
 		},
@@ -31,7 +31,7 @@ export class Trmnl implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						resource: ['device'],
+						resource: ['device', 'pluginSetting'],
 					},
 				},
 			},
@@ -74,7 +74,10 @@ export class Trmnl implements INodeType {
 				}
 
 				if (isApiError(error)) {
-					throw new NodeApiError(this.getNode(), error, { itemIndex });
+					throw new NodeApiError(this.getNode(), error, {
+						itemIndex,
+						message: getSanitizedApiErrorMessage(error),
+					});
 				}
 
 				throw new NodeOperationError(this.getNode(), error as Error, { itemIndex });

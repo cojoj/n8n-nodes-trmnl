@@ -141,6 +141,182 @@ describe('TRMNL node execution', () => {
 		assert.equal(requests.length, 0);
 	});
 
+	it('lists plugin settings as individual items and preserves every returned field', async () => {
+		const httpResponse = loadFixture('account-plugin-settings-list.json');
+		const { result, requests } = await executeWith({
+			parameters: { resource: 'pluginSetting', operation: 'list', pluginId: '' },
+			httpResponse,
+		});
+
+		assert.deepEqual(requests, [
+			{
+				authentication: 'trmnlAccountApi',
+				options: {
+					method: 'GET',
+					url: 'https://trmnl.com/api/plugin_settings',
+					json: true,
+				},
+			},
+		]);
+		assert.deepEqual(
+			result[0].map((item) => item.json),
+			httpResponse.data,
+		);
+	});
+
+	it('passes the documented optional plugin_id filter exactly', async () => {
+		for (const pluginId of ['101', 'calendars']) {
+			const { requests } = await executeWith({
+				parameters: { resource: 'pluginSetting', operation: 'list', pluginId },
+				httpResponse: { data: [] },
+			});
+
+			assert.deepEqual(requests, [
+				{
+					authentication: 'trmnlAccountApi',
+					options: {
+						method: 'GET',
+						url: 'https://trmnl.com/api/plugin_settings',
+						qs: { plugin_id: pluginId },
+						json: true,
+					},
+				},
+			]);
+		}
+	});
+
+	it('keeps a non-array Plugin Setting List response as one normalized item', async () => {
+		const httpResponse = { data: { message: 'Synthetic response' }, meta: { source: 'fixture' } };
+		const { result } = await executeWith({
+			parameters: { resource: 'pluginSetting', operation: 'list' },
+			httpResponse,
+		});
+
+		assert.deepEqual(result[0][0].json, httpResponse);
+	});
+
+	it('gets Plugin Setting details by UUID and preserves available markup sizes', async () => {
+		const httpResponse = loadFixture('account-plugin-setting-details.json');
+		const pluginSetting = httpResponse.data;
+		const { result, requests } = await executeWith({
+			parameters: {
+				resource: 'pluginSetting',
+				operation: 'getDetails',
+				pluginSettingUuid: pluginSetting.uuid,
+			},
+			httpResponse,
+		});
+
+		assert.deepEqual(requests, [
+			{
+				authentication: 'trmnlAccountApi',
+				options: {
+					method: 'GET',
+					url: `https://trmnl.com/api/plugin_settings/${pluginSetting.uuid}/details`,
+					json: true,
+				},
+			},
+		]);
+		assert.deepEqual(result[0][0].json, httpResponse);
+		assert.deepEqual(result[0][0].json.data.available_markup_sizes, [
+			'markup_full',
+			'markup_half_horizontal',
+			'markup_half_vertical',
+			'markup_quadrant',
+		]);
+	});
+
+	it('gets schema-free Plugin Setting data by numeric ID or UUID', async () => {
+		const httpResponse = loadFixture('account-plugin-setting-data.json');
+		const numeric = await executeWith({
+			parameters: {
+				resource: 'pluginSetting',
+				operation: 'getData',
+				pluginSettingId: '31001',
+			},
+			httpResponse,
+		});
+		const uuid = await executeWith({
+			parameters: {
+				resource: 'pluginSetting',
+				operation: 'getData',
+				pluginSettingId: '00000000-0000-4000-8000-000000000001',
+			},
+			httpResponse,
+		});
+
+		assert.equal(
+			numeric.requests[0].options.url,
+			'https://trmnl.com/api/plugin_settings/31001/data',
+		);
+		assert.equal(
+			uuid.requests[0].options.url,
+			'https://trmnl.com/api/plugin_settings/00000000-0000-4000-8000-000000000001/data',
+		);
+		assert.deepEqual(numeric.result[0][0].json, httpResponse);
+		assert.deepEqual(uuid.result[0][0].json, httpResponse);
+	});
+
+	it('rejects invalid Plugin Setting identifiers before making requests', async () => {
+		for (const parameters of [
+			{ resource: 'pluginSetting', operation: 'list', pluginId: 'weather' },
+			{ resource: 'pluginSetting', operation: 'getDetails', pluginSettingUuid: '../details' },
+			{ resource: 'pluginSetting', operation: 'getData', pluginSettingId: '0' },
+		]) {
+			const { context, requests } = createExecuteContext({ parameters });
+			await assert.rejects(new Trmnl().execute.call(context), /Plugin (ID|Setting)/);
+			assert.equal(requests.length, 0);
+		}
+	});
+
+	it('sanitizes documented Account API error paths without exposing credentials', async () => {
+		const cases = [
+			{
+				parameters: { resource: 'pluginSetting', operation: 'list' },
+				statusCode: 401,
+				message: /Account API authentication failed/,
+			},
+			{
+				parameters: {
+					resource: 'pluginSetting',
+					operation: 'getDetails',
+					pluginSettingUuid: '00000000-0000-4000-8000-000000000001',
+				},
+				statusCode: 404,
+				message: /could not find the requested account resource/,
+			},
+			{
+				parameters: {
+					resource: 'pluginSetting',
+					operation: 'getData',
+					pluginSettingId: '31001',
+				},
+				statusCode: 422,
+				message: /no data available for this Plugin Setting/,
+			},
+		];
+
+		for (const testCase of cases) {
+			const secret = 'user_fixture_secret_must_not_escape';
+			const httpError = Object.assign(new Error(`Rejected ${secret}`), {
+				statusCode: testCase.statusCode,
+				response: { body: { message: secret }, request: { headers: { Authorization: secret } } },
+			});
+			const { context } = createExecuteContext({
+				parameters: testCase.parameters,
+				httpError,
+			});
+
+			await assert.rejects(new Trmnl().execute.call(context), (error) => {
+				assert.ok(error instanceof NodeApiError);
+				assert.equal(error.httpCode, String(testCase.statusCode));
+				assert.match(error.message, testCase.message);
+				assert.doesNotMatch(JSON.stringify(error), new RegExp(secret));
+				return true;
+			});
+		}
+	});
+
 	it('posts Set Content and returns diagnostic output', async () => {
 		const httpResponse = loadFixture('private-plugin-set-content.json');
 		const { result, requests } = await executeWith({

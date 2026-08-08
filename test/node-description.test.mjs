@@ -13,7 +13,7 @@ describe('TRMNL node description', () => {
 		});
 	});
 
-	it('requires Account API credentials for Device operations', () => {
+	it('requires Account API credentials for Device and Plugin Setting operations', () => {
 		const { credentials, properties } = new Trmnl().description;
 		const accountCredential = credentials?.find(
 			(credential) => credential.name === 'trmnlAccountApi',
@@ -23,7 +23,7 @@ describe('TRMNL node description', () => {
 		assert.equal(accountCredential.required, true);
 		assert.deepEqual(accountCredential.displayOptions, {
 			show: {
-				resource: ['device'],
+				resource: ['device', 'pluginSetting'],
 			},
 		});
 
@@ -41,6 +41,45 @@ describe('TRMNL node description', () => {
 			operation.options.map((option) => option.value),
 			['get', 'list'],
 		);
+
+		assert.ok(resource.options.some((option) => option.value === 'pluginSetting'));
+		const pluginSettingOperation = properties.find(
+			(property) =>
+				property.name === 'operation' &&
+				property.displayOptions?.show?.resource?.includes('pluginSetting'),
+		);
+		assert.ok(
+			pluginSettingOperation &&
+				'options' in pluginSettingOperation &&
+				pluginSettingOperation.options,
+		);
+		assert.deepEqual(
+			pluginSettingOperation.options.map((option) => option.value),
+			['getData', 'getDetails', 'list'],
+		);
+	});
+
+	it('keeps Plugin Setting identifiers expression-friendly without a dynamic selector', () => {
+		const { properties } = new Trmnl().description;
+		const pluginId = properties.find((property) => property.name === 'pluginId');
+		const pluginSettingUuid = properties.find(
+			(property) => property.name === 'pluginSettingUuid',
+		);
+		const pluginSettingId = properties.find((property) => property.name === 'pluginSettingId');
+
+		assert.ok(pluginId);
+		assert.equal(pluginId.type, 'string');
+		assert.equal(pluginId.required, undefined);
+		assert.deepEqual(pluginId.displayOptions?.show?.operation, ['list']);
+		assert.ok(pluginSettingUuid);
+		assert.equal(pluginSettingUuid.type, 'string');
+		assert.equal(pluginSettingUuid.required, true);
+		assert.deepEqual(pluginSettingUuid.displayOptions?.show?.operation, ['getDetails']);
+		assert.ok(pluginSettingId);
+		assert.equal(pluginSettingId.type, 'string');
+		assert.equal(pluginSettingId.required, true);
+		assert.deepEqual(pluginSettingId.displayOptions?.show?.operation, ['getData']);
+		assert.ok(properties.every((property) => property.type !== 'resourceLocator'));
 	});
 
 	it('shows Stream Limit only for the stream merge strategy', () => {

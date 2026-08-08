@@ -1,0 +1,14 @@
+{
+  "data": {
+    "arbitrary_nested_payload": {
+      "temperature": 21.5,
+      "units": "celsius"
+    },
+    "items": [
+      {
+        "label": "synthetic"
+      }
+    ],
+    "nullable_value": null
+  }
+}

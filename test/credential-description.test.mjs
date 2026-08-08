@@ -121,8 +121,8 @@ describe('TRMNL credential descriptions', () => {
 		assert.match(privatePluginNotice.displayName, /Webhook strategy/);
 		assert.ok(accountNotice);
 		assert.equal(accountNotice.type, 'notice');
-		assert.match(accountNotice.displayName, /Device List and Get/);
-		assert.match(accountNotice.displayName, /do not push content or refresh hardware/);
+		assert.match(accountNotice.displayName, /Device and Plugin Setting read operations/);
+		assert.match(accountNotice.displayName, /do not change plugin data, markup, playlists, or devices/);
 		assert.ok(accountApiKey);
 		assert.match(accountApiKey.description ?? '', /developer license/);
 		assert.match(accountApiKey.description ?? '', /Do not enter a Private Plugin UUID/);
