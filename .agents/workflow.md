@@ -65,8 +65,9 @@ When asked to build or update a node in this project, follow these steps:
   allow the user to manually test the node in n8n to verify that it does what
   is expected
 - Make sure to use **proper types whenever possible**
-- If you are updating the npm package version, make sure to **update
-  CHANGELOG.md** in the root of the repository
+- Do not update the npm package version or maintain a committed changelog.
+  `.github/workflows/publish.yml` derives the published version from the stable
+  GitHub Release tag, and `.github/release.yml` generates the release notes.
 
 ## CLI
 This project uses n8n's CLI tool for developing community nodes: `n8n-node`. It
