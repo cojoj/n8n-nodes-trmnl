@@ -27,6 +27,7 @@ export class TrmnlPrivatePluginApi implements ICredentialType {
 			type: 'notice',
 			default: '',
 		},
+		// eslint-disable-next-line @n8n/community-nodes/credential-unnecessary-password -- The saved webhook URL contains the secret plugin UUID.
 		{
 			displayName: 'Webhook URL or Plugin Setting UUID',
 			name: 'webhookUrlOrUuid',

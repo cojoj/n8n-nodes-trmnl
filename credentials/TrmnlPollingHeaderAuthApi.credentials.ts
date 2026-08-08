@@ -28,6 +28,7 @@ export class TrmnlPollingHeaderAuthApi implements ICredentialType {
 			required: true,
 			placeholder: 'X-TRMNL-Token',
 		},
+		// eslint-disable-next-line @n8n/community-nodes/credential-unnecessary-password -- The incoming authentication header value is a secret.
 		{
 			displayName: 'Header Value',
 			name: 'headerValue',
