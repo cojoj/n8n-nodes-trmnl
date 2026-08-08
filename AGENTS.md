@@ -78,8 +78,8 @@ project _may_ contain example nodes and/or credentials that need to be
   **very specific reason** to ignore/disable it
 - Make sure to use **proper types whenever possible**
 - Do not update the npm package version or maintain a committed changelog.
-  `.github/workflows/publish.yml` derives the published version and npm-visible
-  release notes from the stable GitHub Release.
+  `.github/workflows/publish.yml` derives the published version from the stable
+  GitHub Release tag, and `.github/release.yml` generates the release notes.
 - Read `.agents/workflow.md` for more info
 
 ## Context-specific docs

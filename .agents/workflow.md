@@ -66,8 +66,8 @@ When asked to build or update a node in this project, follow these steps:
   is expected
 - Make sure to use **proper types whenever possible**
 - Do not update the npm package version or maintain a committed changelog.
-  `.github/workflows/publish.yml` derives the published version and npm-visible
-  release notes from the stable GitHub Release.
+  `.github/workflows/publish.yml` derives the published version from the stable
+  GitHub Release tag, and `.github/release.yml` generates the release notes.
 
 ## CLI
 This project uses n8n's CLI tool for developing community nodes: `n8n-node`. It
