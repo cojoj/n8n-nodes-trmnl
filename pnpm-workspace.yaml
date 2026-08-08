@@ -1,7 +1,14 @@
 allowBuilds:
+  # Optional native SSH acceleration pulled by newer n8n-workflow versions.
+  # This package does not use SSH, so its install scripts remain disabled.
+  cpu-features: false
   eslint-plugin-n8n-nodes-base: true
   isolated-vm: true
+  ssh2: false
   unrs-resolver: true
+
+# Keep a shorter cooling-off period for fast-moving n8n releases.
+minimumReleaseAge: 360
 
 overrides:
   'axios@>=1.0.0 <1.18.0': ^1.18.0
@@ -13,4 +20,5 @@ overrides:
   'js-yaml@>=4.0.0 <4.3.1': ^4.3.1
   'lodash@>=4.0.0 <=4.17.23': ^4.17.24
   'minimatch@>=9.0.0 <9.0.7': ^9.0.7
+  'nanoid@>=3.0.0 <3.3.17': 3.3.17
   'undici@>=6.0.0 <6.28.0': ^6.28.0
