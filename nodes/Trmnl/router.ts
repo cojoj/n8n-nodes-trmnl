@@ -21,7 +21,7 @@ export async function routeTrmnlOperation(
 	const operation = this.getNodeParameter('operation', itemIndex) as string;
 
 	if (resource === 'device' && operation === 'list') {
-		return await listDevices.call(this);
+		return await listDevices.call(this, itemIndex);
 	}
 
 	if (resource === 'device' && operation === 'get') {

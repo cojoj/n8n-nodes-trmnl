@@ -1,0 +1,9 @@
+{
+	"statusCode": 503,
+	"response": {
+		"status": 503,
+		"body": {
+			"message": "[redacted upstream service error]"
+		}
+	}
+}

@@ -22,7 +22,7 @@ export class TrmnlPrivatePluginApi implements ICredentialType {
 	properties: INodeProperties[] = [
 		{
 			displayName:
-				'Use this credential for Private Plugin operations. The plugin must be saved and use the Webhook strategy.',
+				'Use this credential for Private Plugin operations. The plugin must be saved and use the Webhook strategy. Credential testing performs a read-only content request.',
 			name: 'privatePluginNotice',
 			type: 'notice',
 			default: '',

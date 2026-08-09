@@ -1,0 +1,9 @@
+{
+	"statusCode": 401,
+	"response": {
+		"status": 401,
+		"body": {
+			"message": "[redacted upstream authentication error]"
+		}
+	}
+}

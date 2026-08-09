@@ -1,4 +1,4 @@
-import type { IDataObject, IExecuteFunctions, JsonObject } from 'n8n-workflow';
+import type { IDataObject, IExecuteFunctions } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
 export function normalizeResponse(response: unknown): IDataObject {
@@ -9,26 +9,6 @@ export function normalizeResponse(response: unknown): IDataObject {
 	return {
 		data: response as IDataObject[string],
 	};
-}
-
-export function isApiError(error: unknown): error is JsonObject {
-	if (!error || typeof error !== 'object') {
-		return false;
-	}
-
-	const maybeApiError = error as { response?: unknown; statusCode?: unknown; httpCode?: unknown };
-
-	return Boolean(maybeApiError.response ?? maybeApiError.statusCode ?? maybeApiError.httpCode);
-}
-
-export function getSanitizedApiErrorMessage(error: unknown): string | undefined {
-	if (!(error instanceof Error)) {
-		return undefined;
-	}
-
-	return (error as Error & { trmnlSanitized?: unknown }).trmnlSanitized === true
-		? error.message
-		: undefined;
 }
 
 export function unwrapValidationResult<T>(

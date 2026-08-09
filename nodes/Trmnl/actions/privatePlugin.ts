@@ -10,6 +10,7 @@ import {
 	normalizePrivatePluginEndpoint,
 	parseJsonObject,
 } from '../helpers/payload';
+import { trmnlPrivatePluginApiRequest } from '../transport';
 import { normalizeResponse, unwrapValidationResult } from '../utils';
 
 type TrmnlPrivatePluginCredentials = {
@@ -80,9 +81,8 @@ export async function setPrivatePluginContent(
 		);
 	}
 
-	const response = await this.helpers.httpRequestWithAuthentication.call(
+	const response = await trmnlPrivatePluginApiRequest.call(
 		this,
-		'trmnlPrivatePluginApi',
 		{
 			method: 'POST',
 			url,
@@ -92,6 +92,14 @@ export async function setPrivatePluginContent(
 			body,
 			json: true,
 		} as IHttpRequestOptions,
+		{
+			itemIndex,
+			operation: 'setContent',
+			operationLabel: 'setting Private Plugin content',
+			resource: 'privatePlugin',
+			target: 'Private Plugin content endpoint',
+			write: true,
+		},
 	);
 
 	return {
@@ -120,14 +128,20 @@ export async function getPrivatePluginContent(
 		this,
 		itemIndex,
 	);
-	const response = await this.helpers.httpRequestWithAuthentication.call(
+	const response = await trmnlPrivatePluginApiRequest.call(
 		this,
-		'trmnlPrivatePluginApi',
 		{
 			method: 'GET',
 			url,
 			json: true,
 		} as IHttpRequestOptions,
+		{
+			itemIndex,
+			operation: 'getContent',
+			operationLabel: 'getting Private Plugin content',
+			resource: 'privatePlugin',
+			target: 'Private Plugin content endpoint',
+		},
 	);
 
 	return {

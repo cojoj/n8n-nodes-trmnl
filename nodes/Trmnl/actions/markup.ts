@@ -1,6 +1,7 @@
 import type { IDataObject, IExecuteFunctions, IHttpRequestOptions } from 'n8n-workflow';
 
 import { assignmentsToJsonObject, parseJsonObject } from '../helpers/payload';
+import { trmnlPublicApiRequest } from '../transport';
 import { normalizeResponse, unwrapValidationResult } from '../utils';
 
 export async function renderMarkup(
@@ -22,18 +23,28 @@ export async function renderMarkup(
 		this,
 		itemIndex,
 	);
-	const response = await this.helpers.httpRequest({
-		method: 'POST',
-		url: 'https://trmnl.com/api/markup',
-		headers: {
-			'Content-Type': 'application/json',
+	const response = await trmnlPublicApiRequest.call(
+		this,
+		{
+			method: 'POST',
+			url: 'https://trmnl.com/api/markup',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: {
+				markup,
+				variables,
+			},
+			json: true,
+		} as IHttpRequestOptions,
+		{
+			itemIndex,
+			operation: 'render',
+			operationLabel: 'rendering Liquid markup',
+			resource: 'markup',
+			target: 'Markup Render endpoint',
 		},
-		body: {
-			markup,
-			variables,
-		},
-		json: true,
-	} as IHttpRequestOptions);
+	);
 	const normalizedResponse = normalizeResponse(response);
 
 	return {

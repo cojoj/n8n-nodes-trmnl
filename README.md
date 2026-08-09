@@ -72,7 +72,9 @@ See [docs/getting-started.md](docs/getting-started.md) for the full walkthrough.
 
 - **Polling Request**: exposes a production webhook URL and returns the first JSON item from the workflow's last node with HTTP 200.
 
-The trigger supports GET or POST and optional **TRMNL Polling Header Auth API** credentials. Configure the same header in TRMNL's Polling Headers. Incoming headers are intentionally not copied into workflow output.
+The trigger supports GET or POST and optional **TRMNL Polling Header Auth API** credentials. In TRMNL's current Polling Headers field, enter the same pair on one line as `Name: Value` (or `name=value`). Incoming headers are intentionally not copied into workflow output.
+
+Use the active production webhook URL, not the test URL. It must be publicly reachable over HTTPS, and the workflow should remain fast because Polling waits synchronously for the final node. Matching Header Auth starts one execution and returns its first root JSON object. A missing, malformed, or wrong header receives HTTP 401 before an execution starts.
 
 ### Device
 
@@ -112,6 +114,8 @@ Choose **Using Fields Below** for n8n's native name/value editor with typed valu
 When using Stream, send every top-level key that the plugin should retain. Hosted TRMNL can remove stored keys omitted from a Stream update.
 
 The node validates payload size locally before sending. The default limit is 2 KB; TRMNL+ users can raise the node's payload limit to 5 KB.
+
+TRMNL currently documents up to 12 Private Plugin webhook requests per hour, or 30 per hour for TRMNL+ subscribers. Faster requests receive HTTP 429. The node preserves that status and any `Retry-After` response value, but it does not maintain a client-side quota counter or retry automatically.
 
 ### Markup
 
@@ -155,12 +159,19 @@ See the [Account API roadmap](docs/account-api-roadmap.md) for the implemented P
 
 TRMNL account API docs: https://docs.trmnl.com/go/private-api/account
 
+## API Errors and Retry On Fail
+
+External TRMNL failures are reported as n8n API errors with the HTTP status preserved when one exists. Messages identify the credential boundary and safe operation context without echoing credentials, webhook URLs, Plugin Setting identifiers, request headers, or raw upstream bodies. Documented Plugin Setting capability failures receive specific 422 messages, and 429 errors include `Retry-After` guidance when TRMNL supplies it.
+
+No action or trigger request is retried automatically. For transient reads and Markup Render, enable n8n's **Retry On Fail** deliberately when repeating the request is appropriate. Review write side effects before enabling it for Set Content, Update Data, or Write Markup. n8n cannot know the account's exact remaining TRMNL quota.
+
 ## Development Checks
 
 ```bash
 pnpm test
 pnpm lint
 pnpm pack --dry-run
+pnpm exec n8n-node cloud-support
 ```
 
 This project keeps n8n strict mode enabled for community-node compatibility.

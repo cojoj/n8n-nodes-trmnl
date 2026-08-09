@@ -4,11 +4,24 @@ import { NodeOperationError } from 'n8n-workflow';
 import { trmnlAccountApiRequest } from '../transport';
 import { normalizeResponse } from '../utils';
 
-export async function listDevices(this: IExecuteFunctions): Promise<IDataObject[]> {
-	const response = await trmnlAccountApiRequest.call(this, {
-		method: 'GET',
-		url: '/api/devices',
-	});
+export async function listDevices(
+	this: IExecuteFunctions,
+	itemIndex: number,
+): Promise<IDataObject[]> {
+	const response = await trmnlAccountApiRequest.call(
+		this,
+		{
+			method: 'GET',
+			url: '/api/devices',
+		},
+		{
+			itemIndex,
+			operation: 'list',
+			operationLabel: 'listing Devices',
+			resource: 'device',
+			target: 'Device list',
+		},
+	);
 	const normalizedResponse = normalizeResponse(response);
 
 	if (!Array.isArray(normalizedResponse.data)) {
@@ -31,10 +44,20 @@ export async function getDevice(
 		});
 	}
 
-	const response = await trmnlAccountApiRequest.call(this, {
-		method: 'GET',
-		url: `/api/devices/${numericDeviceId}`,
-	});
+	const response = await trmnlAccountApiRequest.call(
+		this,
+		{
+			method: 'GET',
+			url: `/api/devices/${numericDeviceId}`,
+		},
+		{
+			itemIndex,
+			operation: 'get',
+			operationLabel: 'getting a Device',
+			resource: 'device',
+			target: 'Device',
+		},
+	);
 	const normalizedResponse = normalizeResponse(response);
 	const device = normalizedResponse.data;
 

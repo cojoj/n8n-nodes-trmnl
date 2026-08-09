@@ -87,6 +87,8 @@ Included in the first public release:
 
 Hosted validation on 2026-08-03 proved synchronous Polling end to end.
 
+The 0.4.0 reliability candidate adds strict local Header Auth validation and operation-aware API/rate-limit errors without expanding the Polling contract. Hosted Header Auth acceptance passed on 2026-08-09: a matching TRMNL preview request rendered the expected variables, wrong and missing values returned 401 without executions, successful workflow input remained header-free, and the scoped temporary HTTPS exposure and test state were removed afterward.
+
 Deferred after contract research:
 
 - Async Polling trigger and callback support. The initial HTTP 202 acknowledgment worked, but hosted TRMNL returned HTTP 410 `Version mismatch` for immediate, delayed, and matching `version: 1` callback experiments. Async Polling stays outside the released node until TRMNL's callback version contract is documented and validated.

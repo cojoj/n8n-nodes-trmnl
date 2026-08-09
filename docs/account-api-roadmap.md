@@ -1,6 +1,6 @@
 # TRMNL Account API Roadmap
 
-Research verified against the live OpenAPI specification: 2026-08-08
+Research verified against the live OpenAPI specification and hosted Private Plugin form: 2026-08-09
 
 This roadmap proposes the next authenticated TRMNL operations for the n8n node. It is a planning document, not an API commitment. Implementations should be checked against the current [TRMNL Account API documentation](https://docs.trmnl.com/go/private-api/account), [Display API documentation](https://docs.trmnl.com/go/private-api/screens), and [OpenAPI specification](https://trmnl.com/api-docs/openapi.yaml) when each slice begins.
 
@@ -66,6 +66,18 @@ Implementation details:
 - The shared transport maps write-data and markup-size `422` errors by operation context and does not retry writes.
 
 Live acceptance passed on 2026-08-08 with a newly created disposable Webhook Plugin Setting. The setting's `markup_full` size was initialized in the console, then local n8n proved Update Data, Read Markup, Write Markup, hosted saved state, an 800×480 rendered preview, and exact source restoration. The disposable setting was deleted afterward. No Force Refresh or physical-device delivery claim was made.
+
+### Reliability foundation — implemented for the 0.4.0 candidate
+
+The 0.4.0 reliability slice keeps the 0.1.x through 0.3.x operation surface unchanged while centralizing external request failures across Private Plugin, Markup, Device, and Plugin Setting operations.
+
+- Local validation remains `NodeOperationError`; external HTTP and network failures remain `NodeApiError`.
+- Safe operation context distinguishes credential-boundary 401, target-aware 404, documented Plugin Setting 422 capability failures, 429 with optional `Retry-After`, and clean 5xx/network failures.
+- Continue On Fail preserves pairing and adds only redacted resource, operation, status, and Retry-After context.
+- No request is retried automatically and no client-side quota counter is maintained.
+- Polling remains synchronous GET/POST with optional Header Auth. The current hosted form accepts `Name: Value` or `name=value`; rejected credentials return 401 before workflow execution and incoming headers are omitted from workflow input.
+
+Automated coverage and local n8n presentation remain release-candidate gates. Hosted Polling Header acceptance passed on 2026-08-09 through a scoped public HTTPS proxy: TRMNL's preview made exactly one authenticated request, received the final root JSON object, and rendered both expected variables. Direct requests with missing and wrong values each returned 401 without creating an execution, while the successful workflow input contained neither the authentication header nor a headers object. The tunnel and proxy were stopped, the temporary hosted plugin and credential were deleted, disposable workflows were archived, and temporary files and clipboard contents were cleared. No physical-device delivery claim was made.
 
 ### 3. Playlist visibility
 

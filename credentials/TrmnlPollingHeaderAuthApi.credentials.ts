@@ -15,7 +15,7 @@ export class TrmnlPollingHeaderAuthApi implements ICredentialType {
 	properties: INodeProperties[] = [
 		{
 			displayName:
-				'Enter the same header name and value in the TRMNL Private Plugin Polling Headers. The value is encrypted by n8n and is not emitted by the trigger.',
+				'Enter the same pair in TRMNL Polling Headers as Name: Value (or name=value). n8n encrypts the value and the trigger never emits it. Credential testing validates this local configuration only; it does not contact TRMNL.',
 			name: 'pollingHeaderNotice',
 			type: 'notice',
 			default: '',
@@ -27,6 +27,7 @@ export class TrmnlPollingHeaderAuthApi implements ICredentialType {
 			default: 'Authorization',
 			required: true,
 			placeholder: 'X-TRMNL-Token',
+			description: 'HTTP header name only, without a colon or value',
 		},
 		// eslint-disable-next-line @n8n/community-nodes/credential-unnecessary-password -- The incoming authentication header value is a secret.
 		{

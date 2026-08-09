@@ -1,0 +1,9 @@
+{
+	"statusCode": 422,
+	"response": {
+		"status": 422,
+		"body": {
+			"message": "[redacted upstream capability error]"
+		}
+	}
+}
