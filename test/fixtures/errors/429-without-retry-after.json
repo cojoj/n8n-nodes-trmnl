@@ -1,0 +1,9 @@
+{
+	"statusCode": 429,
+	"response": {
+		"status": 429,
+		"body": {
+			"message": "[redacted upstream rate-limit error]"
+		}
+	}
+}

@@ -9,3 +9,7 @@ the request sent by the node separate from assertions for the response it return
 
 Plugin Setting write and markup fixtures use synthetic identifiers and harmless Liquid snippets
 only. Live backup content and acceptance markers must remain outside the repository.
+
+`errors/` contains fully redacted representative HTTP and network failures. Tests may add an
+in-memory sentinel secret to prove that raw upstream errors never reach node errors or Continue
+On Fail output.

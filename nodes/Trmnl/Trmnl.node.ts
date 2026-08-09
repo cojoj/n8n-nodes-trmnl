@@ -3,12 +3,13 @@ import type {
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
+	JsonObject,
 } from 'n8n-workflow';
 import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import { trmnlProperties } from './descriptions';
 import { routeTrmnlOperation } from './router';
-import { getSanitizedApiErrorMessage, isApiError } from './utils';
+import { getTrmnlApiErrorContext } from './transport';
 
 export class Trmnl implements INodeType {
 	description: INodeTypeDescription = {
@@ -64,20 +65,38 @@ export class Trmnl implements INodeType {
 				);
 			} catch (error) {
 				if (this.continueOnFail()) {
+					const apiContext = getTrmnlApiErrorContext(error);
+
 					returnData.push({
 						json: {
 							error: error instanceof Error ? error.message : 'Unknown error',
+							...(apiContext === undefined
+								? {}
+								: {
+									operation: apiContext.operation,
+									resource: apiContext.resource,
+									...(apiContext.statusCode === undefined
+										? {}
+										: { statusCode: apiContext.statusCode }),
+									...(apiContext.networkErrorCode === undefined
+										? {}
+										: { networkErrorCode: apiContext.networkErrorCode }),
+									...(apiContext.retryAfter === undefined
+										? {}
+										: { retryAfter: apiContext.retryAfter }),
+								}),
 						},
 						pairedItem: { item: itemIndex },
 					});
 					continue;
 				}
 
-				if (isApiError(error)) {
-					throw new NodeApiError(this.getNode(), error, {
-						itemIndex,
-						message: getSanitizedApiErrorMessage(error),
-					});
+				if (error instanceof NodeApiError) {
+					throw new NodeApiError(this.getNode(), error as unknown as JsonObject, { itemIndex });
+				}
+
+				if (error instanceof NodeOperationError) {
+					throw new NodeOperationError(this.getNode(), error, { itemIndex });
 				}
 
 				throw new NodeOperationError(this.getNode(), error as Error, { itemIndex });

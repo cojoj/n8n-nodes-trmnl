@@ -1,0 +1,9 @@
+{
+	"statusCode": 404,
+	"response": {
+		"status": 404,
+		"body": {
+			"message": "[redacted upstream not-found error]"
+		}
+	}
+}

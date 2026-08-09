@@ -1,0 +1,12 @@
+{
+	"statusCode": 429,
+	"response": {
+		"status": 429,
+		"headers": {
+			"retry-after": "60"
+		},
+		"body": {
+			"message": "[redacted upstream rate-limit error]"
+		}
+	}
+}

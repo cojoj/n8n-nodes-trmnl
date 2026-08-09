@@ -21,9 +21,18 @@ describe('TRMNL credential descriptions', () => {
 
 	it('uses themed official glyphs and a masked value for Polling Header Auth', () => {
 		const credential = new TrmnlPollingHeaderAuthApi();
+		const notice = credential.properties.find(
+			(property) => property.name === 'pollingHeaderNotice',
+		);
+		const headerName = credential.properties.find((property) => property.name === 'headerName');
 		const headerValue = credential.properties.find((property) => property.name === 'headerValue');
 
 		assert.deepEqual(credential.icon, officialTrmnlIcons);
+		assert.ok(notice);
+		assert.match(notice.displayName, /Name: Value \(or name=value\)/);
+		assert.match(notice.displayName, /local configuration only/);
+		assert.match(notice.displayName, /does not contact TRMNL/);
+		assert.match(headerName?.description ?? '', /without a colon or value/);
 		assert.ok(headerValue);
 		assert.equal(headerValue.required, true);
 		assert.equal(headerValue.typeOptions?.password, true);
@@ -119,6 +128,7 @@ describe('TRMNL credential descriptions', () => {
 		assert.ok(privatePluginNotice);
 		assert.equal(privatePluginNotice.type, 'notice');
 		assert.match(privatePluginNotice.displayName, /Webhook strategy/);
+		assert.match(privatePluginNotice.displayName, /read-only content request/);
 		assert.ok(accountNotice);
 		assert.equal(accountNotice.type, 'notice');
 		assert.match(
@@ -126,6 +136,7 @@ describe('TRMNL credential descriptions', () => {
 			/Plugin Setting read, data-update, and markup-management/,
 		);
 		assert.match(accountNotice.displayName, /do not Force Refresh/);
+		assert.match(accountNotice.displayName, /testing reads the authenticated account profile/);
 		assert.ok(accountApiKey);
 		assert.match(accountApiKey.description ?? '', /developer license/);
 		assert.match(accountApiKey.description ?? '', /Do not enter a Private Plugin UUID/);

@@ -122,10 +122,16 @@ Use synchronous Polling when the data can be prepared within TRMNL's request win
 
 1. Add **TRMNL Trigger** as the first node.
 2. Choose the GET or POST verb you will configure in TRMNL.
-3. Optionally create **TRMNL Polling Header Auth API** credentials. Copy the exact same header name and value into TRMNL's Polling Headers.
+3. Optionally create **TRMNL Polling Header Auth API** credentials. In TRMNL's Polling Headers, enter the exact pair on one line as `Name: Value` (or `name=value`). The n8n credential test validates only this local format; it does not contact TRMNL.
 4. Make the workflow's final node output the root JSON object used by the plugin markup.
 5. Activate the workflow and copy the trigger's production URL into the Private Plugin's Polling URL.
 
-The production URL must be publicly reachable over HTTPS. On success, the trigger returns the first item from the last node as JSON with HTTP 200. Request query parameters, body, and method are available to the workflow; request headers are deliberately omitted so the auth secret cannot leak downstream.
+The workflow must be active and its production URL must be publicly reachable over HTTPS. Keep the path fast because Polling waits synchronously for the final node. On success, the trigger returns the first item from the last node as root JSON with HTTP 200. Matching Header Auth starts exactly one execution; missing, malformed, or wrong Header Auth returns HTTP 401 without starting an execution. Request query parameters, body, and method are available to the workflow; request headers are deliberately omitted so the auth secret cannot leak downstream.
 
 Import `examples/private-plugin-polling/polling-workflow.json` for a small starting point.
+
+## Handle TRMNL API Errors
+
+The node keeps external failures as n8n API errors and preserves HTTP status when available. It explains whether Account API credentials, a Private Plugin endpoint, or another safe target context failed without including secret values or identifiers. Documented Plugin Setting 422 capability responses and Private Plugin 429 rate limits get specific messages; when TRMNL returns `Retry-After`, Continue On Fail output includes that redacted value with the operation and status.
+
+The node never retries requests automatically. Use n8n's **Retry On Fail** deliberately for transient reads or Markup Render. Before enabling it on Set Content, Update Data, or Write Markup, decide whether repeating the write is safe for your workflow. TRMNL's webhook documentation currently allows 12 requests per hour, or 30 for TRMNL+; n8n cannot determine your exact remaining quota.

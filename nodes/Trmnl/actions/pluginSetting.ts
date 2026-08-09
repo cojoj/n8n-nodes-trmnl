@@ -118,7 +118,13 @@ export async function listPluginSettings(
 		options.qs = { plugin_id: pluginId };
 	}
 
-	const response = await trmnlAccountApiRequest.call(this, options);
+	const response = await trmnlAccountApiRequest.call(this, options, {
+		itemIndex,
+		operation: 'list',
+		operationLabel: 'listing Plugin Settings',
+		resource: 'pluginSetting',
+		target: 'Plugin Setting list',
+	});
 	const normalizedResponse = normalizeResponse(response);
 
 	if (!Array.isArray(normalizedResponse.data)) {
@@ -133,10 +139,20 @@ export async function getPluginSettingDetails(
 	itemIndex: number,
 ): Promise<IDataObject> {
 	const pluginSettingUuid = getPluginSettingUuid(this, itemIndex);
-	const response = await trmnlAccountApiRequest.call(this, {
-		method: 'GET',
-		url: `/api/plugin_settings/${encodeURIComponent(pluginSettingUuid)}/details`,
-	});
+	const response = await trmnlAccountApiRequest.call(
+		this,
+		{
+			method: 'GET',
+			url: `/api/plugin_settings/${encodeURIComponent(pluginSettingUuid)}/details`,
+		},
+		{
+			itemIndex,
+			operation: 'getDetails',
+			operationLabel: 'getting Plugin Setting details',
+			resource: 'pluginSetting',
+			target: 'Plugin Setting',
+		},
+	);
 
 	return normalizeResponse(response);
 }
@@ -146,10 +162,20 @@ export async function getPluginSettingData(
 	itemIndex: number,
 ): Promise<IDataObject> {
 	const pluginSettingId = getPluginSettingId(this, itemIndex);
-	const response = await trmnlAccountApiRequest.call(this, {
-		method: 'GET',
-		url: `/api/plugin_settings/${encodeURIComponent(pluginSettingId)}/data`,
-	});
+	const response = await trmnlAccountApiRequest.call(
+		this,
+		{
+			method: 'GET',
+			url: `/api/plugin_settings/${encodeURIComponent(pluginSettingId)}/data`,
+		},
+		{
+			itemIndex,
+			operation: 'getData',
+			operationLabel: 'getting Plugin Setting data',
+			resource: 'pluginSetting',
+			target: 'Plugin Setting data',
+		},
+	);
 
 	return normalizeResponse(response);
 }
@@ -172,16 +198,27 @@ export async function updatePluginSettingData(
 		this,
 		itemIndex,
 	);
-	const response = await trmnlAccountApiRequest.call(this, {
-		method: 'POST',
-		url: `/api/plugin_settings/${encodeURIComponent(pluginSettingId)}/data`,
-		headers: {
-			'Content-Type': 'application/json',
+	const response = await trmnlAccountApiRequest.call(
+		this,
+		{
+			method: 'POST',
+			url: `/api/plugin_settings/${encodeURIComponent(pluginSettingId)}/data`,
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: {
+				merge_variables: mergeVariables,
+			},
 		},
-		body: {
-			merge_variables: mergeVariables,
+		{
+			itemIndex,
+			operation: 'updateData',
+			operationLabel: 'updating Plugin Setting data',
+			resource: 'pluginSetting',
+			target: 'Plugin Setting data',
+			write: true,
 		},
-	});
+	);
 
 	return {
 		operation: 'updateData',
@@ -197,11 +234,21 @@ export async function readPluginSettingMarkup(
 ): Promise<IDataObject> {
 	const pluginSettingUuid = getPluginSettingUuid(this, itemIndex);
 	const size = getMarkupSize(this, itemIndex);
-	const response = await trmnlAccountApiRequest.call(this, {
-		method: 'GET',
-		url: `/api/plugin_settings/${encodeURIComponent(pluginSettingUuid)}/markup/${encodeURIComponent(size)}`,
-		json: false,
-	});
+	const response = await trmnlAccountApiRequest.call(
+		this,
+		{
+			method: 'GET',
+			url: `/api/plugin_settings/${encodeURIComponent(pluginSettingUuid)}/markup/${encodeURIComponent(size)}`,
+			json: false,
+		},
+		{
+			itemIndex,
+			operation: 'readMarkup',
+			operationLabel: 'reading Plugin Setting markup',
+			resource: 'pluginSetting',
+			target: 'Plugin Setting markup',
+		},
+	);
 	const content = extractMarkupContent(response);
 
 	if (content === undefined) {
@@ -229,14 +276,25 @@ export async function writePluginSettingMarkup(
 	const pluginSettingUuid = getPluginSettingUuid(this, itemIndex);
 	const size = getMarkupSize(this, itemIndex);
 	const content = this.getNodeParameter('pluginSettingMarkup', itemIndex) as string;
-	const response = await trmnlAccountApiRequest.call(this, {
-		method: 'PUT',
-		url: `/api/plugin_settings/${encodeURIComponent(pluginSettingUuid)}/markup/${encodeURIComponent(size)}`,
-		headers: {
-			'Content-Type': 'application/json',
+	const response = await trmnlAccountApiRequest.call(
+		this,
+		{
+			method: 'PUT',
+			url: `/api/plugin_settings/${encodeURIComponent(pluginSettingUuid)}/markup/${encodeURIComponent(size)}`,
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: { content },
 		},
-		body: { content },
-	});
+		{
+			itemIndex,
+			operation: 'writeMarkup',
+			operationLabel: 'writing Plugin Setting markup',
+			resource: 'pluginSetting',
+			target: 'Plugin Setting markup',
+			write: true,
+		},
+	);
 
 	return {
 		operation: 'writeMarkup',

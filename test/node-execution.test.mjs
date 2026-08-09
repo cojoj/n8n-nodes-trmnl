@@ -1,12 +1,8 @@
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
 import { describe, it } from 'node:test';
 
 import { Trmnl } from '../dist/nodes/Trmnl/Trmnl.node.js';
 import { loadFixture } from './helpers/load-fixture.mjs';
-
-const require = createRequire(import.meta.url);
-const { NodeApiError } = require('n8n-workflow');
 
 function createExecuteContext({
 	parameters,
@@ -447,69 +443,6 @@ describe('TRMNL node execution', () => {
 		}
 	});
 
-	it('sanitizes documented Account API error paths without exposing credentials', async () => {
-		const cases = [
-			{
-				parameters: { resource: 'pluginSetting', operation: 'list' },
-				statusCode: 401,
-				message: /Account API authentication failed/,
-			},
-			{
-				parameters: {
-					resource: 'pluginSetting',
-					operation: 'getDetails',
-					pluginSettingUuid: '00000000-0000-4000-8000-000000000001',
-				},
-				statusCode: 404,
-				message: /could not find the requested account resource/,
-			},
-			{
-				parameters: {
-					resource: 'pluginSetting',
-					operation: 'getData',
-					pluginSettingId: '31001',
-				},
-				statusCode: 422,
-				message: /no data available for this Plugin Setting/,
-			},
-			{
-				parameters: updateDataParameters(),
-				statusCode: 422,
-				message: /cannot modify data for this Plugin Setting/,
-			},
-			{
-				parameters: {
-					resource: 'pluginSetting',
-					operation: 'readMarkup',
-					pluginSettingUuid: '00000000-0000-4000-8000-000000000001',
-					markupSize: 'markup_custom',
-				},
-				statusCode: 422,
-				message: /rejected this markup size/,
-			},
-		];
-
-		for (const testCase of cases) {
-			const secret = 'user_fixture_secret_must_not_escape';
-			const httpError = Object.assign(new Error(`Rejected ${secret}`), {
-				statusCode: testCase.statusCode,
-				response: { body: { message: secret }, request: { headers: { Authorization: secret } } },
-			});
-			const { context } = createExecuteContext({
-				parameters: testCase.parameters,
-				httpError,
-			});
-
-			await assert.rejects(new Trmnl().execute.call(context), (error) => {
-				assert.ok(error instanceof NodeApiError);
-				assert.equal(error.httpCode, String(testCase.statusCode));
-				assert.match(error.message, testCase.message);
-				assert.doesNotMatch(JSON.stringify(error), new RegExp(secret));
-				return true;
-			});
-		}
-	});
-
 	it('posts Set Content and returns diagnostic output', async () => {
 		const httpResponse = loadFixture('private-plugin-set-content.json');
 		const { result, requests } = await executeWith({
@@ -702,68 +635,4 @@ describe('TRMNL node execution', () => {
 		assert.equal(requests.length, 0);
 	});
 
-	it('wraps HTTP failures as NodeApiError', async () => {
-		const httpError = Object.assign(new Error('TRMNL unavailable'), {
-			statusCode: 503,
-			response: { body: { message: 'Try again later' } },
-		});
-		const { context } = createExecuteContext({
-			parameters: setContentParameters(),
-			httpError,
-		});
-
-		await assert.rejects(new Trmnl().execute.call(context), (error) => {
-			assert.ok(error instanceof NodeApiError);
-			assert.equal(error.httpCode, '503');
-			assert.equal(error.context.itemIndex, 0);
-			return true;
-		});
-	});
-
-	it('returns an error item for HTTP failures when Continue On Fail is enabled', async () => {
-		const httpError = Object.assign(new Error('TRMNL unavailable'), {
-			statusCode: 503,
-		});
-		const { result } = await executeWith({
-			parameters: setContentParameters(),
-			httpError,
-			continueOnFail: true,
-		});
-
-		assert.deepEqual(result, [
-			[
-				{
-					json: { error: 'TRMNL unavailable' },
-					pairedItem: { item: 0 },
-				},
-			],
-		]);
-	});
-
-	it('does not retry Plugin Setting writes and preserves pairing on Continue On Fail', async () => {
-		const secret = 'user_fixture_secret_must_not_escape';
-		const httpError = Object.assign(new Error(`Rejected ${secret}`), {
-			statusCode: 422,
-			response: { body: { message: secret } },
-		});
-		const { result, requests } = await executeWith({
-			parameters: updateDataParameters(),
-			httpError,
-			continueOnFail: true,
-		});
-
-		assert.equal(requests.length, 1);
-		assert.deepEqual(result, [
-			[
-				{
-					json: {
-						error:
-							'TRMNL cannot modify data for this Plugin Setting. The setting may not support Account API data updates.',
-					},
-					pairedItem: { item: 0 },
-				},
-			],
-		]);
-		assert.doesNotMatch(JSON.stringify(result), new RegExp(secret));
-	});
 });

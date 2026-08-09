@@ -20,6 +20,8 @@ type HttpHeaderAuthCredentials = {
 	headerValue: string;
 };
 
+const HTTP_HEADER_NAME_PATTERN = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+
 export class TrmnlTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'TRMNL Trigger',
@@ -104,6 +106,18 @@ export class TrmnlTrigger implements INodeType {
 			},
 			{
 				displayName:
+					'In TRMNL Polling Headers, add the credential pair on one line as Name: Value (or name=value). The value must match exactly.',
+				name: 'pollingHeaderFormatNotice',
+				type: 'notice',
+				default: '',
+				displayOptions: {
+					show: {
+						authentication: ['headerAuth'],
+					},
+				},
+			},
+			{
+				displayName:
 					'TRMNL waits for this workflow to finish. Keep the path fast and make the final node output the root JSON object used by the markup.',
 				name: 'synchronousPollingNotice',
 				type: 'notice',
@@ -118,19 +132,22 @@ export class TrmnlTrigger implements INodeType {
 				this: ICredentialTestFunctions,
 				credential: ICredentialsDecrypted<ICredentialDataDecryptedObject>,
 			): Promise<INodeCredentialTestResult> {
-				const headerName = String(credential.data?.headerName ?? '').trim();
-				const headerValue = String(credential.data?.headerValue ?? '');
+				const validation = validateHeaderAuthCredentials({
+					headerName: String(credential.data?.headerName ?? ''),
+					headerValue: String(credential.data?.headerValue ?? ''),
+				});
 
-				if (!headerName || !headerValue) {
+				if (!validation.ok) {
 					return {
 						status: 'Error',
-						message: 'Enter both a Polling Header name and value.',
+						message: validation.error,
 					};
 				}
 
 				return {
 					status: 'OK',
-					message: 'Header Auth is configured for incoming TRMNL polling requests.',
+					message:
+						'Local Header Auth configuration is valid. This does not contact TRMNL or test the production URL.',
 				};
 			},
 		},
@@ -184,21 +201,78 @@ async function authenticateRequest(this: IWebhookFunctions): Promise<boolean> {
 		return true;
 	}
 
-	const credentials = (await this.getCredentials(
-		'trmnlPollingHeaderAuthApi',
-	)) as HttpHeaderAuthCredentials;
-	const headerName = String(credentials.headerName ?? '')
-		.trim()
-		.toLowerCase();
-	const expectedValue = String(credentials.headerValue ?? '');
-	const actualValue = headerName ? this.getHeaderData()[headerName] : undefined;
+	if (authentication !== 'headerAuth') {
+		return false;
+	}
+
+	let credentials: HttpHeaderAuthCredentials;
+
+	try {
+		credentials = (await this.getCredentials(
+			'trmnlPollingHeaderAuthApi',
+		)) as HttpHeaderAuthCredentials;
+	} catch {
+		return false;
+	}
+
+	const validation = validateHeaderAuthCredentials(credentials);
+
+	if (!validation.ok) {
+		return false;
+	}
+
+	const headerName = validation.headerName.toLowerCase();
+	const expectedValue = validation.headerValue;
+	const actualValue = Object.entries(this.getHeaderData()).find(
+		([name]) => name.toLowerCase() === headerName,
+	)?.[1];
 
 	return (
 		typeof actualValue === 'string' &&
-		headerName.length > 0 &&
-		expectedValue.length > 0 &&
+		isValidHeaderValue(actualValue) &&
 		securelyEqual(actualValue, expectedValue)
 	);
+}
+
+function validateHeaderAuthCredentials(
+	credentials: HttpHeaderAuthCredentials,
+):
+	| { ok: true; headerName: string; headerValue: string }
+	| { ok: false; error: string } {
+	const headerName = String(credentials.headerName ?? '').trim();
+	const headerValue = String(credentials.headerValue ?? '');
+
+	if (!headerName || !headerValue.trim()) {
+		return { ok: false, error: 'Enter both a Polling Header name and value.' };
+	}
+
+	if (!HTTP_HEADER_NAME_PATTERN.test(headerName)) {
+		return {
+			ok: false,
+			error: 'Polling Header name must be a valid HTTP header name without spaces or a colon.',
+		};
+	}
+
+	if (!isValidHeaderValue(headerValue)) {
+		return {
+			ok: false,
+			error: 'Polling Header value must be a single HTTP header value without control characters.',
+		};
+	}
+
+	return { ok: true, headerName, headerValue };
+}
+
+function isValidHeaderValue(value: string): boolean {
+	for (const character of value) {
+		const codePoint = character.codePointAt(0) ?? 0;
+
+		if (codePoint <= 8 || (codePoint >= 10 && codePoint <= 31) || codePoint === 127) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 function securelyEqual(actualValue: string, expectedValue: string): boolean {

@@ -11,6 +11,7 @@ function createWebhookContext({
 	query = {},
 	params = {},
 	credentials = { headerName: 'X-TRMNL-Token', headerValue: 'expected-token' },
+	credentialError,
 } = {}) {
 	const response = {
 		statusCode: undefined,
@@ -32,7 +33,13 @@ function createWebhookContext({
 		context: {
 			getNodeParameter: (name, fallback) =>
 				Object.prototype.hasOwnProperty.call(parameters, name) ? parameters[name] : fallback,
-			getCredentials: async () => credentials,
+			getCredentials: async () => {
+				if (credentialError) {
+					throw credentialError;
+				}
+
+				return credentials;
+			},
 			getHeaderData: () => headers,
 			getBodyData: () => body,
 			getQueryData: () => query,
@@ -56,6 +63,22 @@ describe('TRMNL Trigger', () => {
 		assert.equal(webhook.responseData, 'firstEntryJson');
 	});
 
+	it('documents current hosted Polling Header syntax and synchronous production requirements', () => {
+		const properties = new TrmnlTrigger().description.properties;
+		const headerNotice = properties.find(
+			(property) => property.name === 'pollingHeaderFormatNotice',
+		);
+		const setupNotice = properties.find((property) => property.name === 'pollingSetupNotice');
+		const synchronousNotice = properties.find(
+			(property) => property.name === 'synchronousPollingNotice',
+		);
+
+		assert.match(headerNotice?.displayName ?? '', /Name: Value \(or name=value\)/);
+		assert.match(setupNotice?.displayName ?? '', /active and publicly reachable over HTTPS/);
+		assert.match(synchronousNotice?.displayName ?? '', /Keep the path fast/);
+		assert.doesNotMatch(synchronousNotice?.displayName ?? '', /\d+ ?(ms|seconds?)/i);
+	});
+
 	it('uses no-op webhook lifecycle hooks because TRMNL URLs are configured manually', async () => {
 		const trigger = new TrmnlTrigger();
 
@@ -77,10 +100,29 @@ describe('TRMNL Trigger', () => {
 			),
 			{
 				status: 'OK',
-				message: 'Header Auth is configured for incoming TRMNL polling requests.',
+				message:
+					'Local Header Auth configuration is valid. This does not contact TRMNL or test the production URL.',
 			},
 		);
 		assert.equal((await testCredential.call({}, { data: {} })).status, 'Error');
+		assert.equal(
+			(
+				await testCredential.call(
+					{},
+					{ data: { headerName: 'Bad Header:', headerValue: 'secret' } },
+				)
+			).status,
+			'Error',
+		);
+		assert.equal(
+			(
+				await testCredential.call(
+					{},
+					{ data: { headerName: 'X-TRMNL-Token', headerValue: 'line\nbreak' } },
+				)
+			).status,
+			'Error',
+		);
 	});
 
 	it('emits request data without copying inbound headers into the workflow', async () => {
@@ -109,27 +151,40 @@ describe('TRMNL Trigger', () => {
 		assert.equal(Object.hasOwn(result.workflowData[0][0].json, 'headers'), false);
 	});
 
-	it('accepts a matching Header Auth credential', async () => {
-		const { context, response } = createWebhookContext({
-			parameters: { httpMethod: 'GET', authentication: 'headerAuth' },
-			headers: { 'x-trmnl-token': 'expected-token' },
-		});
-		const result = await new TrmnlTrigger().webhook.call(context);
+	it('accepts a matching Header Auth credential for GET and POST', async () => {
+		for (const httpMethod of ['GET', 'POST']) {
+			const { context, response } = createWebhookContext({
+				parameters: { httpMethod, authentication: 'headerAuth' },
+				headers: { 'X-TRMNL-TOKEN': 'expected-token' },
+			});
+			const result = await new TrmnlTrigger().webhook.call(context);
 
-		assert.ok(result.workflowData);
-		assert.equal(response.ended, false);
+			assert.ok(result.workflowData);
+			assert.equal(result.workflowData.length, 1);
+			assert.equal(result.workflowData[0].length, 1);
+			assert.equal(result.workflowData[0][0].json.requestMethod, httpMethod);
+			assert.equal(response.ended, false);
+		}
 	});
 
-	it('rejects an invalid Header Auth value without starting the workflow', async () => {
-		const { context, response } = createWebhookContext({
-			parameters: { httpMethod: 'GET', authentication: 'headerAuth' },
-			headers: { 'x-trmnl-token': 'wrong-token' },
-		});
-		const result = await new TrmnlTrigger().webhook.call(context);
+	it('rejects missing, malformed, or wrong Header Auth without starting the workflow', async () => {
+		for (const setup of [
+			{ headers: {} },
+			{ headers: { 'x-trmnl-token': ['expected-token', 'duplicate'] } },
+			{ headers: { 'x-trmnl-token': 'wrong-token' } },
+			{ credentials: { headerName: 'Bad Header:', headerValue: 'expected-token' } },
+			{ credentialError: new Error('Credential unavailable') },
+		]) {
+			const { context, response } = createWebhookContext({
+				parameters: { httpMethod: 'GET', authentication: 'headerAuth' },
+				...setup,
+			});
+			const result = await new TrmnlTrigger().webhook.call(context);
 
-		assert.deepEqual(result, { noWebhookResponse: true });
-		assert.equal(response.statusCode, 401);
-		assert.equal(response.headers['WWW-Authenticate'], 'Header realm="TRMNL Trigger"');
-		assert.equal(response.ended, true);
+			assert.deepEqual(result, { noWebhookResponse: true });
+			assert.equal(response.statusCode, 401);
+			assert.equal(response.headers['WWW-Authenticate'], 'Header realm="TRMNL Trigger"');
+			assert.equal(response.ended, true);
+		}
 	});
 });
