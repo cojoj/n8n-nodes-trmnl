@@ -1,8 +1,9 @@
 import type { IDataObject, IExecuteFunctions } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-import { getDevice, listDevices } from './actions/device';
+import { getDevice, listDevices, updateDeviceSleepMode } from './actions/device';
 import { renderMarkup } from './actions/markup';
+import { listPlaylistItems, setPlaylistItemVisibility } from './actions/playlistItem';
 import {
 	getPluginSettingData,
 	getPluginSettingDetails,
@@ -26,6 +27,18 @@ export async function routeTrmnlOperation(
 
 	if (resource === 'device' && operation === 'get') {
 		return [await getDevice.call(this, itemIndex)];
+	}
+
+	if (resource === 'device' && operation === 'updateSleepMode') {
+		return [await updateDeviceSleepMode.call(this, itemIndex)];
+	}
+
+	if (resource === 'playlistItem' && operation === 'list') {
+		return await listPlaylistItems.call(this, itemIndex);
+	}
+
+	if (resource === 'playlistItem' && operation === 'setVisibility') {
+		return [await setPlaylistItemVisibility.call(this, itemIndex)];
 	}
 
 	if (resource === 'pluginSetting' && operation === 'list') {

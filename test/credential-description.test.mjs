@@ -133,9 +133,10 @@ describe('TRMNL credential descriptions', () => {
 		assert.equal(accountNotice.type, 'notice');
 		assert.match(
 			accountNotice.displayName,
-			/Plugin Setting read, data-update, and markup-management/,
+			/Device reads and sleep controls, Playlist Item visibility/,
 		);
-		assert.match(accountNotice.displayName, /do not Force Refresh/);
+		assert.match(accountNotice.displayName, /Plugin Setting read, data-update, and markup-management/);
+		assert.match(accountNotice.displayName, /do not Force Refresh physical hardware/);
 		assert.match(accountNotice.displayName, /testing reads the authenticated account profile/);
 		assert.ok(accountApiKey);
 		assert.match(accountApiKey.description ?? '', /developer license/);

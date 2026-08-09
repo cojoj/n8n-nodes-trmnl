@@ -14,7 +14,7 @@ describe('TRMNL node description', () => {
 		assert.equal(version, 1);
 	});
 
-	it('requires Account API credentials for Device and Plugin Setting operations', () => {
+	it('requires Account API credentials for Device, Playlist Item, and Plugin Setting operations', () => {
 		const { credentials, properties } = new Trmnl().description;
 		const accountCredential = credentials?.find(
 			(credential) => credential.name === 'trmnlAccountApi',
@@ -24,7 +24,7 @@ describe('TRMNL node description', () => {
 		assert.equal(accountCredential.required, true);
 		assert.deepEqual(accountCredential.displayOptions, {
 			show: {
-				resource: ['device', 'pluginSetting'],
+				resource: ['device', 'playlistItem', 'pluginSetting'],
 			},
 		});
 
@@ -40,7 +40,21 @@ describe('TRMNL node description', () => {
 		assert.ok(operation && 'options' in operation && operation.options);
 		assert.deepEqual(
 			operation.options.map((option) => option.value),
-			['get', 'list'],
+			['get', 'list', 'updateSleepMode'],
+		);
+
+		assert.ok(resource.options.some((option) => option.value === 'playlistItem'));
+		const playlistItemOperation = properties.find(
+			(property) =>
+				property.name === 'operation' &&
+				property.displayOptions?.show?.resource?.includes('playlistItem'),
+		);
+		assert.ok(
+			playlistItemOperation && 'options' in playlistItemOperation && playlistItemOperation.options,
+		);
+		assert.deepEqual(
+			playlistItemOperation.options.map((option) => option.value),
+			['list', 'setVisibility'],
 		);
 
 		assert.ok(resource.options.some((option) => option.value === 'pluginSetting'));
@@ -58,6 +72,55 @@ describe('TRMNL node description', () => {
 			pluginSettingOperation.options.map((option) => option.value),
 			['getData', 'getDetails', 'list', 'readMarkup', 'updateData', 'writeMarkup'],
 		);
+	});
+
+	it('uses expression-friendly Playlist Item visibility controls with clear side-effect scope', () => {
+		const { properties } = new Trmnl().description;
+		const playlistItemId = properties.find((property) => property.name === 'playlistItemId');
+		const visible = properties.find((property) => property.name === 'visible');
+		const notice = properties.find(
+			(property) => property.name === 'playlistItemVisibilityNotice',
+		);
+
+		assert.ok(playlistItemId);
+		assert.equal(playlistItemId.type, 'string');
+		assert.equal(playlistItemId.required, true);
+		assert.equal(playlistItemId.noDataExpression, undefined);
+		assert.deepEqual(playlistItemId.displayOptions?.show?.operation, ['setVisibility']);
+		assert.ok(visible);
+		assert.equal(visible.type, 'boolean');
+		assert.equal(visible.required, true);
+		assert.equal(visible.default, true);
+		assert.ok(notice);
+		assert.match(notice.displayName, /future screen selection/);
+		assert.match(notice.displayName, /does not push content/);
+	});
+
+	it('exposes only validated minute-of-day Device sleep controls', () => {
+		const { properties } = new Trmnl().description;
+		const deviceId = properties.find((property) => property.name === 'deviceId');
+		const enabled = properties.find((property) => property.name === 'sleepModeEnabled');
+		const start = properties.find((property) => property.name === 'sleepStartTime');
+		const end = properties.find((property) => property.name === 'sleepEndTime');
+		const notice = properties.find((property) => property.name === 'deviceSleepWriteNotice');
+
+		assert.ok(deviceId);
+		assert.deepEqual(deviceId.displayOptions?.show?.operation, ['get', 'updateSleepMode']);
+		assert.ok(enabled);
+		assert.equal(enabled.type, 'boolean');
+		assert.equal(enabled.default, false);
+		for (const property of [start, end]) {
+			assert.ok(property);
+			assert.equal(property.type, 'number');
+			assert.equal(property.typeOptions?.minValue, 0);
+			assert.equal(property.typeOptions?.maxValue, 1439);
+			assert.deepEqual(property.displayOptions?.show?.sleepModeEnabled, [true]);
+		}
+		assert.equal(properties.some((property) => property.name === 'percentCharged'), false);
+		assert.equal(properties.some((property) => property.name === 'percent_charged'), false);
+		assert.ok(notice);
+		assert.match(notice.displayName, /does not push content/);
+		assert.match(notice.displayName, /Force Refresh/);
 	});
 
 	it('keeps Plugin Setting identifiers expression-friendly without a dynamic selector', () => {

@@ -20,7 +20,7 @@ export class TrmnlAccountApi implements ICredentialType {
 	properties: INodeProperties[] = [
 		{
 			displayName:
-				'Used by Device reads and Plugin Setting read, data-update, and markup-management operations. Credential testing reads the authenticated account profile. Writes change hosted Plugin Setting state but do not Force Refresh a physical device.',
+				'Used by Device reads and sleep controls, Playlist Item visibility, and Plugin Setting read, data-update, and markup-management operations. Credential testing reads the authenticated account profile. Writes change hosted account state but do not Force Refresh physical hardware.',
 			name: 'accountApiNotice',
 			type: 'notice',
 			default: '',
