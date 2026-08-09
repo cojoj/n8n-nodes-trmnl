@@ -30,6 +30,26 @@ function updateDataParameters() {
 	};
 }
 
+function updateSleepModeParameters() {
+	return {
+		resource: 'device',
+		operation: 'updateSleepMode',
+		deviceId: '101001',
+		sleepModeEnabled: true,
+		sleepStartTime: 1320,
+		sleepEndTime: 480,
+	};
+}
+
+function setVisibilityParameters() {
+	return {
+		resource: 'playlistItem',
+		operation: 'setVisibility',
+		playlistItemId: '41001',
+		visible: false,
+	};
+}
+
 function createErrorContext({
 	parameters,
 	httpError,
@@ -124,6 +144,17 @@ describe('TRMNL API error handling', () => {
 		assert.equal(error.context.itemIndex, 0);
 	});
 
+	it('keeps Playlist Item identifiers out of 404 errors', async () => {
+		const { error } = await captureApiError({
+			parameters: setVisibilityParameters(),
+			httpError: loadFixture('errors/404.json'),
+		});
+
+		assert.equal(error.httpCode, '404');
+		assert.match(error.message, /requested Playlist Item/);
+		assert.doesNotMatch(error.message, /41001/);
+	});
+
 	it('distinguishes documented Plugin Setting 422 capability failures', async () => {
 		const unprocessable = loadFixture('errors/422.json');
 		const cases = [
@@ -138,6 +169,14 @@ describe('TRMNL API error handling', () => {
 			{
 				parameters: updateDataParameters(),
 				message: /cannot modify data for this Plugin Setting/,
+			},
+			{
+				parameters: setVisibilityParameters(),
+				message: /rejected this Playlist Item visibility change/,
+			},
+			{
+				parameters: updateSleepModeParameters(),
+				message: /rejected this Device sleep schedule/,
 			},
 			{
 				parameters: {
@@ -160,6 +199,23 @@ describe('TRMNL API error handling', () => {
 			assert.equal(error.httpCode, '422');
 			assert.match(error.message, testCase.message);
 		}
+	});
+
+	it('keeps Playlist Item writes single-attempt and paired under Continue On Fail', async () => {
+		const { context, requests } = createErrorContext({
+			parameters: setVisibilityParameters(),
+			httpError: loadFixture('errors/429-without-retry-after.json'),
+			continueOnFail: true,
+		});
+		const result = await new Trmnl().execute.call(context);
+
+		assert.equal(requests.length, 1);
+		assert.equal(result[0][0].pairedItem.item, 0);
+		assert.equal(result[0][0].json.operation, 'setVisibility');
+		assert.equal(result[0][0].json.resource, 'playlistItem');
+		assert.equal(result[0][0].json.statusCode, 429);
+		assert.match(result[0][0].json.error, /No automatic retry was attempted/);
+		assert.match(result[0][0].json.error, /safe repeat behavior/);
 	});
 
 	it('preserves 429 and Retry-After context without retrying a write', async () => {

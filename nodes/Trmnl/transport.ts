@@ -110,6 +110,14 @@ function getUnprocessableEntityMessage(context: TrmnlApiRequestContext): string 
 		return 'TRMNL cannot modify data for this Plugin Setting. The setting may not support Account API data updates.';
 	}
 
+	if (context.resource === 'playlistItem' && context.operation === 'setVisibility') {
+		return 'TRMNL rejected this Playlist Item visibility change. The item may no longer support visibility updates.';
+	}
+
+	if (context.resource === 'device' && context.operation === 'updateSleepMode') {
+		return 'TRMNL rejected this Device sleep schedule. Check the enabled state and minute-of-day values.';
+	}
+
 	if (
 		context.resource === 'pluginSetting' &&
 		(context.operation === 'readMarkup' || context.operation === 'writeMarkup')

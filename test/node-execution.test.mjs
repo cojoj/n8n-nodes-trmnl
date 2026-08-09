@@ -82,6 +82,28 @@ function updateDataParameters(overrides = {}) {
 	};
 }
 
+function updateSleepModeParameters(overrides = {}) {
+	return {
+		resource: 'device',
+		operation: 'updateSleepMode',
+		deviceId: '101001',
+		sleepModeEnabled: true,
+		sleepStartTime: 1320,
+		sleepEndTime: 480,
+		...overrides,
+	};
+}
+
+function setVisibilityParameters(overrides = {}) {
+	return {
+		resource: 'playlistItem',
+		operation: 'setVisibility',
+		playlistItemId: '41001',
+		visible: false,
+		...overrides,
+	};
+}
+
 describe('TRMNL node execution', () => {
 	it('lists devices with Account API authentication and preserves each device', async () => {
 		const httpResponse = loadFixture('account-devices-list.json');
@@ -146,6 +168,176 @@ describe('TRMNL node execution', () => {
 
 		await assert.rejects(new Trmnl().execute.call(context), /Device ID must be a positive integer/);
 		assert.equal(requests.length, 0);
+	});
+
+	it('updates Device sleep mode with only normalized documented settings', async () => {
+		const httpResponse = loadFixture('account-device-sleep-update.json');
+		const { result, requests } = await executeWith({
+			parameters: updateSleepModeParameters({
+				percent_charged: 99,
+				unrelatedField: 'must-not-be-sent',
+			}),
+			httpResponse,
+		});
+
+		assert.deepEqual(requests, [
+			{
+				authentication: 'trmnlAccountApi',
+				options: {
+					method: 'PATCH',
+					url: 'https://trmnl.com/api/devices/101001',
+					headers: { 'Content-Type': 'application/json' },
+					body: {
+						sleep_mode_enabled: true,
+						sleep_start_time: 1320,
+						sleep_end_time: 480,
+					},
+					json: true,
+				},
+			},
+		]);
+		assert.deepEqual(result[0][0], {
+			json: {
+				operation: 'updateSleepMode',
+				success: true,
+				deviceId: 101001,
+				requestedSettings: {
+					sleep_mode_enabled: true,
+					sleep_start_time: 1320,
+					sleep_end_time: 480,
+				},
+				response: httpResponse,
+			},
+			pairedItem: { item: 0 },
+		});
+	});
+
+	it('accepts minute-of-day boundaries and omits times when sleep mode is disabled', async () => {
+		const enabled = await executeWith({
+			parameters: updateSleepModeParameters({ sleepStartTime: 0, sleepEndTime: 1439 }),
+		});
+		const disabled = await executeWith({
+			parameters: updateSleepModeParameters({
+				sleepModeEnabled: false,
+				sleepStartTime: 2000,
+				sleepEndTime: -1,
+			}),
+		});
+
+		assert.deepEqual(enabled.requests[0].options.body, {
+			sleep_mode_enabled: true,
+			sleep_start_time: 0,
+			sleep_end_time: 1439,
+		});
+		assert.deepEqual(disabled.requests[0].options.body, {
+			sleep_mode_enabled: false,
+		});
+		assert.deepEqual(disabled.result[0][0].json.requestedSettings, {
+			sleep_mode_enabled: false,
+		});
+	});
+
+	it('rejects invalid Device sleep IDs, booleans, and minute-of-day values before HTTP', async () => {
+		for (const parameters of [
+			updateSleepModeParameters({ deviceId: '0' }),
+			updateSleepModeParameters({ sleepModeEnabled: 'true' }),
+			updateSleepModeParameters({ sleepStartTime: -1 }),
+			updateSleepModeParameters({ sleepStartTime: 1440 }),
+			updateSleepModeParameters({ sleepEndTime: 480.5 }),
+			updateSleepModeParameters({ sleepEndTime: '' }),
+		]) {
+			const { context, requests } = createExecuteContext({ parameters });
+
+			await assert.rejects(
+				new Trmnl().execute.call(context),
+				/Device ID|Sleep Mode Enabled|Sleep Start|Sleep End/,
+			);
+			assert.equal(requests.length, 0);
+		}
+	});
+
+	it('lists Playlist Items as individual items while preserving every returned field', async () => {
+		const httpResponse = loadFixture('account-playlist-items-list.json');
+		const { result, requests } = await executeWith({
+			parameters: { resource: 'playlistItem', operation: 'list' },
+			httpResponse,
+		});
+
+		assert.deepEqual(requests, [
+			{
+				authentication: 'trmnlAccountApi',
+				options: {
+					method: 'GET',
+					url: 'https://trmnl.com/api/playlists/items',
+					json: true,
+				},
+			},
+		]);
+		assert.deepEqual(
+			result[0].map((item) => item.json),
+			httpResponse.data,
+		);
+		assert.ok(result[0].every((item) => item.pairedItem.item === 0));
+	});
+
+	it('keeps a non-array Playlist Item List response as one normalized item', async () => {
+		const httpResponse = { data: { message: 'Synthetic response' }, meta: { source: 'fixture' } };
+		const { result } = await executeWith({
+			parameters: { resource: 'playlistItem', operation: 'list' },
+			httpResponse,
+		});
+
+		assert.deepEqual(result[0][0].json, httpResponse);
+	});
+
+	it('sets Playlist Item visibility with an exact boolean-only PATCH body', async () => {
+		const httpResponse = loadFixture('account-playlist-item-visibility-update.json');
+
+		for (const visible of [false, true]) {
+			const { result, requests } = await executeWith({
+				parameters: setVisibilityParameters({ visible, unrelatedField: 'must-not-be-sent' }),
+				httpResponse,
+			});
+
+			assert.deepEqual(requests, [
+				{
+					authentication: 'trmnlAccountApi',
+					options: {
+						method: 'PATCH',
+						url: 'https://trmnl.com/api/playlists/items/41001',
+						headers: { 'Content-Type': 'application/json' },
+						body: { visible },
+						json: true,
+					},
+				},
+			]);
+			assert.deepEqual(result[0][0], {
+				json: {
+					operation: 'setVisibility',
+					success: true,
+					playlistItemId: 41001,
+					visible,
+					response: httpResponse,
+				},
+				pairedItem: { item: 0 },
+			});
+		}
+	});
+
+	it('rejects invalid Playlist Item IDs and non-boolean visibility before HTTP', async () => {
+		for (const parameters of [
+			setVisibilityParameters({ playlistItemId: '0' }),
+			setVisibilityParameters({ playlistItemId: '../items' }),
+			setVisibilityParameters({ visible: 'false' }),
+		]) {
+			const { context, requests } = createExecuteContext({ parameters });
+
+			await assert.rejects(
+				new Trmnl().execute.call(context),
+				/Playlist Item ID|Visible must resolve to a boolean/,
+			);
+			assert.equal(requests.length, 0);
+		}
 	});
 
 	it('lists plugin settings as individual items and preserves every returned field', async () => {

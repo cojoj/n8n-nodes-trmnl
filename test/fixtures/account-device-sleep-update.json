@@ -1,11 +1,9 @@
 {
 	"data": {
 		"id": 101001,
-		"name": "Fixture Display A",
-		"friendly_id": "ABC123",
 		"sleep_mode_enabled": true,
 		"sleep_start_time": 1320,
 		"sleep_end_time": 480,
-		"last_ping_at": "2026-01-15T12:00:00.000Z"
+		"updated_at": "2026-01-17T12:00:00Z"
 	}
 }

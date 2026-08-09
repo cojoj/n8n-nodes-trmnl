@@ -32,7 +32,7 @@ export class Trmnl implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						resource: ['device', 'pluginSetting'],
+						resource: ['device', 'playlistItem', 'pluginSetting'],
 					},
 				},
 			},

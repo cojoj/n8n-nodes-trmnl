@@ -30,7 +30,7 @@ n8n workflow -> TRMNL node -> Private Plugin webhook -> TRMNL render -> device r
 
 Polling is the inverse flow: TRMNL calls an active n8n workflow and the workflow supplies the screen data. This path has been validated against hosted TRMNL through the rendered markup preview.
 
-The Account API surface provides read-only Device discovery plus Plugin Setting reads, server-side data updates, and markup management. The operations were exercised through local n8n against hosted TRMNL on 2026-08-08 with redacted evidence, including a disposable Plugin Setting, rendered markup preview, and exact source restoration. See [docs/manual-test-matrix.md](docs/manual-test-matrix.md) for the separate n8n, hosted-state, preview, restoration, and physical-device evidence boundaries.
+The Account API surface provides Device discovery and sleep controls, Playlist Item visibility automation, plus Plugin Setting reads, server-side data updates, and markup management. The Plugin Setting operations were exercised through local n8n against hosted TRMNL on 2026-08-08 with redacted evidence, including a disposable Plugin Setting, rendered markup preview, and exact source restoration. Playlist visibility and Device sleep controls passed separate local-n8n, hosted Account API, signed-in portal, and exact-restoration acceptance on 2026-08-09. See [docs/manual-test-matrix.md](docs/manual-test-matrix.md) for the separate n8n, hosted-state, portal, restoration, and physical-device evidence boundaries.
 
 The node uses TRMNL's official glyphs from its [Brand Assets](https://trmnl.com/brand) page. See [docs/brand-assets.md](docs/brand-assets.md) for provenance. This is an independent community project; TRMNL and n8n are trademarks of their respective owners.
 
@@ -80,8 +80,16 @@ Use the active production webhook URL, not the test URL. It must be publicly rea
 
 - **List**: Lists devices in the authenticated TRMNL account.
 - **Get**: Gets one device by the numeric ID returned by List.
+- **Update Sleep Mode**: Patches only the documented sleep-enabled setting and, when enabled, start/end minute-of-day values (`0` through `1439`). Sleep times are hidden when sleep mode is disabled and are omitted from that request.
 
-These read-only Account API operations return TRMNL's documented device data for discovery and administration. They do not use the Device Display API, fetch screen images, advance playlists, push content, or refresh physical hardware.
+List and Get return TRMNL's documented device data for discovery and administration. Update Sleep Mode changes the account-side sleep schedule but intentionally does not expose `percent_charged` or any other telemetry-looking field as writable. Device operations do not use the Device Display API, fetch screen images, advance playlists, push content, or Force Refresh physical hardware.
+
+### Playlist Item
+
+- **List**: calls `GET /api/playlists/items` and returns one n8n item per playlist item when TRMNL supplies a `data` array, preserving every returned field.
+- **Set Visibility**: patches exactly one positive numeric playlist-item ID with `{ "visible": <boolean> }` and returns the target ID, requested visibility, and normalized TRMNL response.
+
+Visibility controls whether an item is eligible for future screen selection. It does not directly push content or refresh physical hardware. The node does not assume undocumented pagination, ordering, grouping, filtering, or scheduling and does not expose reorder, duration, move, create, delete, or arbitrary playlist mutation.
 
 ### Plugin Setting
 
@@ -151,11 +159,11 @@ Stores the header name and secret value used to authenticate incoming Polling re
 
 ### TRMNL Account API
 
-Stores a `user_` TRMNL Account API key for authenticated API features. TRMNL requires a developer license for this API. Use it with **Device** -> **List** or **Get**, and all **Plugin Setting** operations. Update Data and Write Markup modify hosted state; the other Account API operations are read-only.
+Stores a `user_` TRMNL Account API key for authenticated API features. TRMNL requires a developer license for this API. Use it with all **Device**, **Playlist Item**, and **Plugin Setting** operations. Device Update Sleep Mode, Playlist Item Set Visibility, Plugin Setting Update Data, and Write Markup modify hosted state; the other Account API operations are read-only.
 
 The Device Display API/BYOD endpoints (`/api/display`, `/api/current_screen`, and other screen-image retrieval routes) use a different credential boundary and remain out of scope. Private Plugin webhooks remain the simplest webhook content-update path, while Account API Update Data and Write Markup target an existing Plugin Setting. Device refresh remains pull/check-in based.
 
-See the [Account API roadmap](docs/account-api-roadmap.md) for the implemented Plugin Setting slices and separately scoped playlist and device work.
+See the [Account API roadmap](docs/account-api-roadmap.md) for the focused implemented slices and deferred safety boundaries.
 
 TRMNL account API docs: https://docs.trmnl.com/go/private-api/account
 
@@ -163,7 +171,7 @@ TRMNL account API docs: https://docs.trmnl.com/go/private-api/account
 
 External TRMNL failures are reported as n8n API errors with the HTTP status preserved when one exists. Messages identify the credential boundary and safe operation context without echoing credentials, webhook URLs, Plugin Setting identifiers, request headers, or raw upstream bodies. Documented Plugin Setting capability failures receive specific 422 messages, and 429 errors include `Retry-After` guidance when TRMNL supplies it.
 
-No action or trigger request is retried automatically. For transient reads and Markup Render, enable n8n's **Retry On Fail** deliberately when repeating the request is appropriate. Review write side effects before enabling it for Set Content, Update Data, or Write Markup. n8n cannot know the account's exact remaining TRMNL quota.
+No action or trigger request is retried automatically. For transient reads and Markup Render, enable n8n's **Retry On Fail** deliberately when repeating the request is appropriate. Review write side effects before enabling it for Set Content, Set Visibility, Update Sleep Mode, Update Data, or Write Markup. n8n cannot know the account's exact remaining TRMNL quota.
 
 ## Development Checks
 
