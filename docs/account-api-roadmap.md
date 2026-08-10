@@ -14,7 +14,7 @@ Do not present this node as firmware, a TRMNL server replacement, or a way to pu
 
 ## Recommended Implementation Slices
 
-The first focused slice includes the read-only **Device** and **Plugin Setting** discovery operations. Device reads shipped in 0.1.0; Plugin Setting reads shipped in 0.2.0. The second slice adds Plugin Setting data and markup management for 0.3.0. Reliability hardening shipped in 0.4.0. Playlist visibility and narrow Device sleep controls form the focused 0.5.0 candidate. Hosted acceptance remains a separate release gate from automated checks.
+The first focused slice includes the read-only **Device** and **Plugin Setting** discovery operations. Device reads shipped in 0.1.0; Plugin Setting reads shipped in 0.2.0. The second slice added Plugin Setting data and markup management in 0.3.0. Reliability hardening shipped in 0.4.0. Playlist visibility and narrow Device sleep controls shipped in 0.5.0 after separate hosted acceptance.
 
 ### 1. Account discovery and plugin-setting reads — implemented
 
@@ -67,19 +67,19 @@ Implementation details:
 
 Live acceptance passed on 2026-08-08 with a newly created disposable Webhook Plugin Setting. The setting's `markup_full` size was initialized in the console, then local n8n proved Update Data, Read Markup, Write Markup, hosted saved state, an 800×480 rendered preview, and exact source restoration. The disposable setting was deleted afterward. No Force Refresh or physical-device delivery claim was made.
 
-### Reliability foundation — implemented for the 0.4.0 candidate
+### Reliability foundation — shipped in 0.4.0
 
 The 0.4.0 reliability slice keeps the 0.1.x through 0.3.x operation surface unchanged while centralizing external request failures across Private Plugin, Markup, Device, and Plugin Setting operations.
 
 - Local validation remains `NodeOperationError`; external HTTP and network failures remain `NodeApiError`.
 - Safe operation context distinguishes credential-boundary 401, target-aware 404, documented Plugin Setting 422 capability failures, 429 with optional `Retry-After`, and clean 5xx/network failures.
-- Continue On Fail preserves pairing and adds only redacted resource, operation, status, and Retry-After context.
+- **On Error > Continue** preserves pairing and adds only redacted resource, operation, status, and Retry-After context. Older n8n versions may label this behavior **Continue On Fail**.
 - No request is retried automatically and no client-side quota counter is maintained.
 - Polling remains synchronous GET/POST with optional Header Auth. The current hosted form accepts `Name: Value` or `name=value`; rejected credentials return 401 before workflow execution and incoming headers are omitted from workflow input.
 
 Automated coverage and local n8n presentation remain release-candidate gates. Hosted Polling Header acceptance passed on 2026-08-09 through a scoped public HTTPS proxy: TRMNL's preview made exactly one authenticated request, received the final root JSON object, and rendered both expected variables. Direct requests with missing and wrong values each returned 401 without creating an execution, while the successful workflow input contained neither the authentication header nor a headers object. The tunnel and proxy were stopped, the temporary hosted plugin and credential were deleted, disposable workflows were archived, and temporary files and clipboard contents were cleared. No physical-device delivery claim was made.
 
-### 3. Playlist visibility — implemented for the 0.5.0 candidate
+### 3. Playlist visibility — shipped in 0.5.0
 
 Implemented in the focused Account automation slice:
 
@@ -90,7 +90,7 @@ These operations are useful for scheduled workflows such as hiding a work dashbo
 
 Visibility affects playlist eligibility for future screen selection. It is not a content push, Force Refresh, or proof of physical-device behavior. Reorder, duration, scheduler, grouping, move, create, delete, and arbitrary playlist edits remain out of scope.
 
-### 4. Device settings, narrowly scoped — implemented for the 0.5.0 candidate
+### 4. Device settings, narrowly scoped — shipped in 0.5.0
 
 **Device > Update Sleep Mode** calls `PATCH /api/devices/{id}` and exposes only fields with a clear account-management use case:
 
@@ -101,7 +101,7 @@ The installed n8n node-property contract does not expose a stable time-input typ
 
 `percent_charged` is deliberately not exposed or forwarded. It appears in the update schema but represents device telemetry, and an n8n workflow should not casually overwrite it. The sleep operation changes account configuration; it does not push content, Force Refresh, or prove physical-device behavior.
 
-Both 0.5.0 mutations reuse the centralized 0.4.x transport and error behavior, retain per-item pairing and Continue On Fail, and make exactly one HTTP attempt per input item. Automated coverage and live acceptance passed on 2026-08-09. Playlist Set Visibility was verified through local n8n, a subsequent Account API List, and the signed-in Playlist UI before the exact original boolean was restored and reverified. Device Update Sleep Mode was verified through local n8n, a subsequent Device Get, and the signed-in Battery & Sleep UI before the exact original enabled/start/end settings were restored and reverified. No physical-device behavior was claimed.
+Both 0.5.0 mutations reuse the centralized 0.4.x transport and error behavior, retain per-item pairing under **On Error > Continue**, and make exactly one HTTP attempt per input item. Automated coverage and live acceptance passed on 2026-08-09. Playlist Set Visibility was verified through local n8n, a subsequent Account API List, and the signed-in Playlist UI before the exact original boolean was restored and reverified. Device Update Sleep Mode was verified through local n8n, a subsequent Device Get, and the signed-in Battery & Sleep UI before the exact original enabled/start/end settings were restored and reverified. No physical-device behavior was claimed.
 
 ## Display APIs Are a Separate Credential Boundary
 
@@ -145,3 +145,7 @@ Keep these out of the first Account API slices:
 3. Exercise the operation in local n8n with the intended credential type.
 4. For writes, use a disposable or safe nonessential target, record the exact original state, verify the resulting TRMNL state separately from the n8n HTTP response, then restore and independently verify the original state.
 5. Update user documentation only with behavior confirmed by the official contract and live acceptance.
+
+## 1.0 Readiness Boundary
+
+The Account API surface required for 1.0 is already shipped and accepted. The remaining 1.0 gate is release-candidate evidence for the package as a whole: clean installation on supported n8n/Node, successful import of both examples, completion of MT-01 through MT-11 including physical-device confirmation, full quality gates, and verified cleanup. Display APIs, Force Refresh, image upload, arbitrary settings, and plugin lifecycle operations remain later milestones rather than 1.0 blockers.
