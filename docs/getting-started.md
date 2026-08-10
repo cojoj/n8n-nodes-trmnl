@@ -48,7 +48,7 @@ When TRMNL returns `{ "data": "Hello, World!" }`, the node output includes top-l
 3. Paste either the full Webhook URL or only the Plugin UUID.
 4. Save the credential.
 
-The credential test trims and validates the value using the same endpoint normalization as Private Plugin node operations, then performs a read-only `GET` request to the resulting webhook endpoint. Do not use a `user_` Account API key here; the separate **TRMNL Account API** credential is used by Device and Plugin Setting operations.
+The credential test trims and validates the value using the same endpoint normalization as Private Plugin node operations, then performs a read-only `GET` request to the resulting webhook endpoint. Do not use a `user_` Account API key here; the separate **TRMNL Account API** credential is used by Device, Playlist Item, and Plugin Setting operations.
 
 For Account API automation, create **TRMNL Account API** credentials with the `user_` key from TRMNL account settings. **Playlist Item > Set Visibility** controls eligibility for future screen selection, **Device > Update Sleep Mode** changes the account-side sleep schedule, **Plugin Setting > Update Data** changes hosted merge variables, and **Read Markup**/**Write Markup** manage one markup size. These writes do not Force Refresh a device; verify the subsequent Account API state and signed-in TRMNL portal separately, then restore any temporary visibility or sleep-setting change.
 
@@ -132,6 +132,6 @@ Import `examples/private-plugin-polling/polling-workflow.json` for a small start
 
 ## Handle TRMNL API Errors
 
-The node keeps external failures as n8n API errors and preserves HTTP status when available. It explains whether Account API credentials, a Private Plugin endpoint, or another safe target context failed without including secret values or identifiers. Documented Plugin Setting 422 capability responses and Private Plugin 429 rate limits get specific messages; when TRMNL returns `Retry-After`, Continue On Fail output includes that redacted value with the operation and status.
+The node keeps external failures as n8n API errors and preserves HTTP status when available. It explains whether Account API credentials, a Private Plugin endpoint, or another safe target context failed without including secret values or identifiers. Documented Plugin Setting 422 capability responses and Private Plugin 429 rate limits get specific messages; when TRMNL returns `Retry-After`, **On Error > Continue** output includes that redacted value with the operation and status. Older n8n versions may label this behavior **Continue On Fail**.
 
 The node never retries requests automatically. Use n8n's **Retry On Fail** deliberately for transient reads or Markup Render. Before enabling it on Set Content, Set Visibility, Update Sleep Mode, Update Data, or Write Markup, decide whether repeating the write is safe for your workflow. TRMNL's webhook documentation currently allows 12 requests per hour, or 30 for TRMNL+; n8n cannot determine your exact remaining quota.

@@ -28,16 +28,15 @@ Node type: Action node.
 
 Build style: start with a programmatic node, even though the API is REST. The first useful operations need light JSON parsing, payload shaping, payload-size validation, optional item-by-item behavior, and nicer errors around TRMNL rate limits. A declarative node would work for raw endpoint wrapping, but this project should feel polished rather than like a thin HTTP Request preset.
 
-## MVP
+## Shipped Surface Through v0.5.0
 
 ### Credentials
 
-Create two credential types, or one credential type with an auth-mode selector:
+The package ships three credential types with separate trust boundaries:
 
-- `TRMNL Private Plugin`: stores the private plugin webhook URL or UUID. This supports the core "push content" workflow without requiring a user API key.
-- `TRMNL Account API`: stores the `user_...` account API key as a Bearer token. This powers optional account/device/plugin management operations.
-
-MVP should start with `TRMNL Private Plugin` only if we want the fastest usable release.
+- `TRMNL Private Plugin API`: stores the private plugin webhook URL or UUID and performs a read-only remote credential test.
+- `TRMNL Polling Header Auth API`: stores the custom incoming Polling header pair and validates its local format without contacting TRMNL.
+- `TRMNL Account API`: stores the `user_...` account API key as a Bearer token for Device, Playlist Item, and Plugin Setting operations.
 
 ### Core Operations
 
@@ -50,10 +49,9 @@ Resource: `Private Plugin`
     - Merge variables as JSON object
     - Merge strategy: Replace, Deep Merge, Stream
     - Stream limit, shown only for Stream
-    - Simplify output toggle
   - Validation:
     - merge variables must be an object
-    - warn or fail before exceeding 2 KB default payload budget
+    - fail locally before exceeding the configured payload budget
     - optional TRMNL+ payload budget of 5 KB
   - Output:
     - sent payload
@@ -70,7 +68,7 @@ Resource: `Markup`
   - Lets users test Liquid variables without waiting on device refresh.
   - This is great for workflow debugging and template authors.
 
-### Nice MVP Workflows
+### Example Workflows
 
 - RSS or Readwise quote -> TRMNL quote screen.
 - Calendar summary -> TRMNL daily agenda.
@@ -78,123 +76,88 @@ Resource: `Markup`
 - GitHub issue/PR list -> TRMNL project board.
 - Weather + transit + todo merge -> TRMNL morning dashboard.
 
-## Post-MVP
+## Additional Shipped Automation
 
-Included in the first public release:
+### Polling Trigger
 
-- `TRMNL Trigger` for Polling with a synchronous root-JSON response.
-- Encrypted custom-header authentication for incoming polling calls.
+- `TRMNL Trigger` supplies a synchronous root-JSON response over GET or POST.
+- Optional encrypted Header Auth rejects missing, malformed, or wrong values before workflow execution and omits incoming headers from workflow data.
 
-Hosted validation on 2026-08-03 proved synchronous Polling end to end.
+Hosted validation on 2026-08-03 proved synchronous Polling end to end. Hosted Header Auth acceptance passed on 2026-08-09: a matching TRMNL preview request rendered the expected variables, wrong and missing values returned 401 without executions, successful workflow input remained header-free, and the scoped temporary HTTPS exposure and test state were removed afterward.
 
-The 0.4.0 reliability candidate adds strict local Header Auth validation and operation-aware API/rate-limit errors without expanding the Polling contract. Hosted Header Auth acceptance passed on 2026-08-09: a matching TRMNL preview request rendered the expected variables, wrong and missing values returned 401 without executions, successful workflow input remained header-free, and the scoped temporary HTTPS exposure and test state were removed afterward.
+### Account API Resources
 
-Deferred after contract research:
+- **Device**: List, Get, and Update Sleep Mode.
+- **Playlist Item**: List and Set Visibility.
+- **Plugin Setting**: List, Get Details, Get Data, Update Data, Read Markup, and Write Markup.
 
-- Async Polling trigger and callback support. The initial HTTP 202 acknowledgment worked, but hosted TRMNL returned HTTP 410 `Version mismatch` for immediate, delayed, and matching `version: 1` callback experiments. Async Polling stays outside the released node until TRMNL's callback version contract is documented and validated.
+All writes are single-attempt operations. Hosted state, portal state, and physical-device behavior remain separate evidence layers.
 
-Resource: `Account`
+### Explicitly Deferred
 
-- `Get Me`
-- `List Devices`
-- `Get Device`
-- `Update Device Sleep Mode`
-
-Resource: `Device Display`
-
-- `Get Current Screen`
-- `Get Next Screen`
-
-These should be presented carefully because `/api/display` advances the playlist. `Get Current Screen` is safer; `Get Next Screen` should carry a strong description that it advances content.
-
-Resource: `Plugin Setting`
-
-- `List Plugin Settings`
-- `Get Plugin Setting Data`
-- `Update Plugin Setting Data`
-- `Read Markup`
-- `Write Markup`
-- `Update Settings`
-
-Resource: `Playlist`
-
-- `List Playlist Items`
-- `Set Playlist Item Visibility`
-
-Potential later resource: `Image Plugin`
-
-- Upload an image for a `webhook_image` plugin, if we can verify request shape and constraints against a real account.
+- Async Polling until TRMNL documents and validates the callback version contract; hosted experiments returned HTTP 410 `Version mismatch`.
+- Device Display API operations because they use a separate credential and `/api/display` advances the playlist.
+- Force Refresh because no authenticated endpoint and side-effect contract are documented.
+- Image upload, plugin-setting lifecycle operations, arbitrary settings writes, and undocumented playlist mutations.
 
 ## UX Principles
 
 - Use TRMNL's GUI terms: Device, Playlist, Private Plugin, Plugin Setting, Merge Variables.
 - Make the easy path very small: "Send JSON to Private Plugin."
-- Hide advanced fields unless needed: merge strategy, stream limit, payload budget, raw response.
-- For IDs, accept either UUID or full webhook URL and normalize internally.
+- Hide conditional fields unless needed, such as the Stream limit and custom payload budget.
+- For a Private Plugin endpoint, accept either its UUID or full webhook URL and normalize internally. Account API resources keep the identifier types documented by TRMNL.
 - Include clear rate-limit errors: default private plugin webhooks allow 12 requests/hour, TRMNL+ allows 30 requests/hour.
 - Be honest in node descriptions: content updates when the TRMNL device next refreshes.
 
 ## Technical Plan
 
-Scaffold with the official n8n node tooling:
+The repository uses the official n8n node tooling and keeps a programmatic node because payload validation, response normalization, per-item behavior, synchronous Polling, and operation-aware redacted errors require explicit control flow.
 
-```bash
-pnpm create @n8n/node@latest n8n-nodes-trmnl -- --template programmatic/example
-```
+Current release-candidate compatibility check on 2026-08-09:
 
-Current versions checked on 2026-05-31:
+- Node.js 24.18.1, which satisfies n8n 2.33.7's `>=22.22` engine requirement;
+- `@n8n/node-cli` 0.42.2 with strict mode and default ESLint configuration;
+- n8n 2.33.7 with published `n8n-nodes-trmnl` 0.5.0 in a clean consumer environment.
 
-- `@n8n/create-node`: 0.31.1
-- `@n8n/node-cli`: 0.32.1
-- `n8n`: 2.22.5
-
-Expected structure:
+Current structure:
 
 - `credentials/TrmnlPrivatePluginApi.credentials.ts`
+- `credentials/TrmnlPollingHeaderAuthApi.credentials.ts`
 - `credentials/TrmnlAccountApi.credentials.ts`
 - `nodes/Trmnl/Trmnl.node.ts`
-- `nodes/Trmnl/actions/privatePlugin/*.ts`
-- `nodes/Trmnl/actions/markup/*.ts`
-- `nodes/Trmnl/transport/index.ts`
+- `nodes/Trmnl/actions/*.ts`
+- `nodes/Trmnl/descriptions/*.ts`
+- `nodes/Trmnl/transport.ts`
 - `nodes/Trmnl/helpers/payload.ts`
 
 Use `this.helpers.httpRequestWithAuthentication.call(...)` for authenticated account API requests and `this.helpers.httpRequest(...)` for unauthenticated webhook URL/UUID calls. Wrap API failures in `NodeApiError`; wrap local validation problems in `NodeOperationError`.
 
-## Testing Plan
+## Release-Candidate Testing
 
-- Unit-test payload normalization:
-  - webhook URL -> UUID or endpoint
-  - UUID -> endpoint
-  - merge variables JSON validation
-  - payload byte-size limits
-- Unit-test operation routing with mocked HTTP responses.
-- Run `pnpm lint`.
-- Run `pnpm build`.
-- Run `pnpm dev` and test inside local n8n at `localhost:5678`.
-- Add manual test workflows under `examples/`.
+- Run the full sequential gate: frozen install, `pnpm test`, `pnpm lint`, `pnpm pack --dry-run`, and `pnpm exec n8n-node cloud-support`.
+- Install the published or packed candidate into a clean supported n8n environment and import both workflows under `examples/`.
+- Complete [docs/manual-test-matrix.md](docs/manual-test-matrix.md), keeping n8n execution, hosted state/rendering, and physical-device display as separate claims.
+- Use disposable hosted targets for merge-strategy and markup writes, restore exact original state, and verify cleanup.
 
 ## OSS Readiness
 
-- Add `n8n-community-node-package` keyword.
-- Configure `package.json` `n8n` metadata with node and credential paths.
-- Add README with screenshots, setup instructions, and example workflows.
-- Add MIT license unless there is a reason to choose otherwise.
-- Add GitHub Actions for lint/build/test.
-- For n8n verification, publish to npm through GitHub Actions with provenance.
+- The package declares the `n8n-community-node-package` keyword and strict n8n metadata.
+- Built node and credential entrypoints, documentation, and example workflows are packed; tests and TypeScript source are excluded.
+- GitHub Actions runs the quality gate and stable GitHub Releases publish to npm through Trusted Publishing with provenance.
+- The MIT license, security policy, contribution guide, and generated GitHub release notes are in place.
 
-## Open Questions To Validate
+## Contract Questions Kept Outside 1.0
 
-- Does the webhook endpoint now prefer `/api/custom_plugins/:uuid` or `/api/plugin_settings/:uuid/data`, or are both supported? Docs show the former; OpenAPI shows the latter.
 - Can account API create a new Private Plugin instance cleanly, or does the user still need to create it in the TRMNL UI to get the webhook UUID?
 - What is the exact multipart shape for `/api/plugin_settings/:uuid/image`?
 - Is there an account API way to force-refresh a plugin setting outside the marketplace return-link flow?
-- What response body do private plugin webhook POSTs return in practice?
 - Does hosted Async Polling require any callback envelope beyond the root JSON object shown by the Private Plugin contract?
 
-## Opinionated Roadmap
+## Exact 1.0 Readiness Boundary
 
-1. Ship a tight MVP around Private Plugin webhooks and Markup rendering.
-2. Add account/device listing for convenience.
-3. Add plugin setting markup management so advanced users can update templates from n8n.
-4. Add image upload once verified.
-5. Publish recipes/examples and make the repo genuinely useful to other TRMNL users.
+1. Validate the packaged candidate on a currently supported Node/n8n combination.
+2. Import and exercise both supplied workflows as installed community-package nodes.
+3. Complete MT-01 through MT-11 against a disposable Webhook Private Plugin, including stored-state reads, Activity/preview evidence, and the physical-device observation required by MT-11.
+4. Restore or remove all temporary workflows, credentials, files, tunnels, and hosted test state, then rerun the full quality gate.
+
+No additional node resource or operation is required for 1.0. Deferred product ideas remain separate future milestones.

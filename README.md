@@ -22,7 +22,7 @@ TRMNL devices are pull-based: n8n sends data to TRMNL, TRMNL renders the screen,
 
 ## Project Status
 
-This project is in an MVP state. The core loop has been validated with a real TRMNL Private Plugin and physical TRMNL device:
+This project is in pre-1.0 release-candidate hardening. The shipped v0.5.0 surface includes Private Plugin Webhook and Polling flows, Markup Render, Device discovery and sleep controls, Playlist Item visibility, and Plugin Setting data and markup operations. The original core loop was validated with a real TRMNL Private Plugin and physical TRMNL device:
 
 ```text
 n8n workflow -> TRMNL node -> Private Plugin webhook -> TRMNL render -> device refresh
@@ -31,6 +31,8 @@ n8n workflow -> TRMNL node -> Private Plugin webhook -> TRMNL render -> device r
 Polling is the inverse flow: TRMNL calls an active n8n workflow and the workflow supplies the screen data. This path has been validated against hosted TRMNL through the rendered markup preview.
 
 The Account API surface provides Device discovery and sleep controls, Playlist Item visibility automation, plus Plugin Setting reads, server-side data updates, and markup management. The Plugin Setting operations were exercised through local n8n against hosted TRMNL on 2026-08-08 with redacted evidence, including a disposable Plugin Setting, rendered markup preview, and exact source restoration. Playlist visibility and Device sleep controls passed separate local-n8n, hosted Account API, signed-in portal, and exact-restoration acceptance on 2026-08-09. See [docs/manual-test-matrix.md](docs/manual-test-matrix.md) for the separate n8n, hosted-state, portal, restoration, and physical-device evidence boundaries.
+
+The remaining 1.0 readiness gap is evidence, not additional product surface: install a packaged release candidate into a clean supported n8n/Node environment, import and exercise both supplied workflows, complete the currently open MT-01 through MT-11 checks against a disposable Webhook Private Plugin, include the physical-device observation required by MT-11, and verify cleanup. Async Polling, Force Refresh, Display API operations, image upload, and plugin lifecycle operations are not 1.0 requirements.
 
 The node uses TRMNL's official glyphs from its [Brand Assets](https://trmnl.com/brand) page. See [docs/brand-assets.md](docs/brand-assets.md) for provenance. This is an independent community project; TRMNL and n8n are trademarks of their respective owners.
 

@@ -17,7 +17,7 @@
         "mergeVariables": "{\n  \"title\": \"Hello from n8n\",\n  \"message\": \"TRMNL webhook test works from local n8n.\",\n  \"items\": [\n    {\n      \"label\": \"Status\",\n      \"value\": \"Connected\"\n    },\n    {\n      \"label\": \"Source\",\n      \"value\": \"n8n dev node\"\n    },\n    {\n      \"label\": \"Next\",\n      \"value\": \"Build richer actions\"\n    }\n  ]\n}",
         "options": {}
       },
-      "type": "CUSTOM.trmnl",
+      "type": "n8n-nodes-trmnl.trmnl",
       "typeVersion": 1,
       "position": [
         208,
