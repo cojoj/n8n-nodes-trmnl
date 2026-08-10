@@ -43,17 +43,31 @@ jobs:
           node-version: 'lts/*'
           registry-url: 'https://registry.npmjs.org/'
 
+      - name: Fetch current main
+        run: git fetch --no-tags origin main
+
       - name: Verify the stable release target
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
+          set -euo pipefail
+
           if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo "Release tag '$RELEASE_TAG' must use the stable v<major>.<minor>.<patch> format." >&2
             exit 1
           fi
 
-          if ! git merge-base --is-ancestor HEAD origin/main; then
-            echo "Release tag '$RELEASE_TAG' must point to a commit on main." >&2
+          TAG_COMMIT="$(git rev-parse "${RELEASE_TAG}^{commit}")"
+          CHECKED_OUT_COMMIT="$(git rev-parse HEAD)"
+          MAIN_COMMIT="$(git rev-parse origin/main)"
+
+          if [[ "$TAG_COMMIT" != "$CHECKED_OUT_COMMIT" ]]; then
+            echo "Release tag '$RELEASE_TAG' does not match the checked-out commit." >&2
+            exit 1
+          fi
+
+          if [[ "$TAG_COMMIT" != "$MAIN_COMMIT" ]]; then
+            echo "Release tag '$RELEASE_TAG' must point to the current main commit, not an older ancestor." >&2
             exit 1
           fi
 
@@ -65,8 +79,20 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: pnpm version "${RELEASE_TAG#v}" --no-git-tag-version --allow-same-version
 
+      - name: Run the full package test suite
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: pnpm test
+
+      - name: Run lint
+        run: pnpm lint
+
+      - name: Check n8n Cloud support
+        run: pnpm exec n8n-node cloud-support
+
       - name: Publish package
-        # The version step derives the package version from the published
-        # GitHub Release tag. In GitHub Actions, n8n-node release then lints,
-        # builds, and publishes with provenance.
+        # The guarded package script delegates to n8n-node's GitHub Actions
+        # path, which rebuilds and publishes with provenance.
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: pnpm release

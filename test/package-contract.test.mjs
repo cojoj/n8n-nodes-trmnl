@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { accessSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { accessSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 
@@ -12,20 +13,44 @@ const exampleWorkflows = [
 	'examples/private-plugin-dashboard/workflow.json',
 	'examples/private-plugin-polling/polling-workflow.json',
 ];
+const releaseTag = process.env.RELEASE_TAG;
 
-function packDryRun() {
-	const pnpmEntrypoint = process.env.npm_execpath;
-	const command = pnpmEntrypoint ? process.execPath : 'pnpm';
-	const args = pnpmEntrypoint
-		? [pnpmEntrypoint, 'pack', '--dry-run', '--json']
-		: ['pack', '--dry-run', '--json'];
-	const result = spawnSync(command, args, {
-		cwd: repositoryRoot,
-		encoding: 'utf8',
-	});
+function packPackage() {
+	const packDirectory = mkdtempSync(join(tmpdir(), 'n8n-nodes-trmnl-pack-'));
 
-	assert.equal(result.status, 0, result.stderr || result.stdout);
-	return JSON.parse(result.stdout);
+	try {
+		const result = spawnSync(
+			'npm',
+			['pack', '--json', '--ignore-scripts', '--pack-destination', packDirectory],
+			{
+				cwd: repositoryRoot,
+				encoding: 'utf8',
+			},
+		);
+
+		assert.equal(result.status, 0, result.stderr || result.stdout);
+		const manifests = JSON.parse(result.stdout);
+		assert.equal(manifests.length, 1);
+		const manifest = manifests[0];
+		const tarballPath = resolve(packDirectory, manifest.filename);
+		accessSync(tarballPath);
+
+		const packedPackageResult = spawnSync('tar', ['-xOf', tarballPath, 'package/package.json'], {
+			encoding: 'utf8',
+		});
+		assert.equal(
+			packedPackageResult.status,
+			0,
+			packedPackageResult.stderr || packedPackageResult.stdout,
+		);
+
+		return {
+			manifest,
+			packedPackageJson: JSON.parse(packedPackageResult.stdout),
+		};
+	} finally {
+		rmSync(packDirectory, { recursive: true, force: true });
+	}
 }
 
 describe('npm package contract', () => {
@@ -36,6 +61,13 @@ describe('npm package contract', () => {
 		assert.equal(packageJson.n8n.n8nNodesApiVersion, 1);
 		assert.equal(packageJson.n8n.strict, true);
 		assert.deepEqual(packageJson.dependencies ?? {}, {});
+	});
+
+	it('matches the transient package version to the stable release tag when publishing', () => {
+		if (releaseTag === undefined) return;
+
+		assert.match(releaseTag, /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
+		assert.equal(packageJson.version, releaseTag.slice(1));
 	});
 
 	it('builds every node and credential entrypoint declared to n8n', () => {
@@ -69,9 +101,16 @@ describe('npm package contract', () => {
 		}
 	});
 
-	it('packs the runtime entrypoints, documentation, and examples without test sources', () => {
-		const manifest = packDryRun();
+	it('packs matching package metadata, runtime entrypoints, documentation, and examples', () => {
+		const { manifest, packedPackageJson } = packPackage();
 		const packedPaths = manifest.files.map((file) => file.path);
+
+		assert.equal(manifest.name, packageJson.name);
+		assert.equal(manifest.version, packageJson.version);
+		assert.equal(manifest.filename, `${packageJson.name}-${packageJson.version}.tgz`);
+		assert.equal(packedPackageJson.name, packageJson.name);
+		assert.equal(packedPackageJson.version, packageJson.version);
+		assert.deepEqual(packedPackageJson.n8n, packageJson.n8n);
 
 		for (const requiredPath of ['package.json', 'README.md', 'LICENSE', ...n8nEntrypoints]) {
 			assert.ok(packedPaths.includes(requiredPath), `${requiredPath} is missing from the package`);
