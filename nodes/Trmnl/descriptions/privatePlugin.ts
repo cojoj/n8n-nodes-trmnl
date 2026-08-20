@@ -87,7 +87,7 @@ export const privatePluginFields: INodeProperties[] = [
 		type: 'json',
 		required: true,
 		default:
-			'{\n  "title": "Hello from n8n",\n  "message": "TRMNL webhook test works from local n8n.",\n  "items": [\n    {\n      "label": "Status",\n      "value": "Connected"\n    }\n  ]\n}',
+			'{\n  "title": "Hello from n8n",\n  "message": "TRMNL received this content from n8n.",\n  "items": [\n    {\n      "label": "Status",\n      "value": "Connected"\n    }\n  ]\n}',
 		typeOptions: {
 			rows: 10,
 		},

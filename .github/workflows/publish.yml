@@ -20,6 +20,7 @@ jobs:
     # `latest` accidentally.
     if: github.event.release.prerelease == false
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     permissions:
       contents: read
@@ -27,18 +28,18 @@ jobs:
 
     steps:
       - name: Check out the released tag
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ github.event.release.tag_name }}
           fetch-depth: 0
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
         with:
           version: 11.18.0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 'lts/*'
           registry-url: 'https://registry.npmjs.org/'
@@ -87,7 +88,13 @@ jobs:
       - name: Run lint
         run: pnpm lint
 
-      - name: Check n8n Cloud support
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Audit high-severity dependencies
+        run: pnpm audit --audit-level high
+
+      - name: Report n8n Cloud support
         run: pnpm exec n8n-node cloud-support
 
       - name: Publish package

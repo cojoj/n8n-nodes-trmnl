@@ -4,10 +4,10 @@
 		{
 			"parameters": {
 				"httpMethod": "GET",
-				"authentication": "none"
+				"authentication": "headerAuth"
 			},
 			"type": "n8n-nodes-trmnl.trmnlTrigger",
-			"typeVersion": 1,
+			"typeVersion": 1.1,
 			"position": [0, 0],
 			"id": "5e08ae28-64d7-4516-b31e-57d31da35450",
 			"name": "TRMNL Trigger"

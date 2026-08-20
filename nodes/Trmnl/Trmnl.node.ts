@@ -73,18 +73,18 @@ export class Trmnl implements INodeType {
 							...(apiContext === undefined
 								? {}
 								: {
-									operation: apiContext.operation,
-									resource: apiContext.resource,
-									...(apiContext.statusCode === undefined
-										? {}
-										: { statusCode: apiContext.statusCode }),
-									...(apiContext.networkErrorCode === undefined
-										? {}
-										: { networkErrorCode: apiContext.networkErrorCode }),
-									...(apiContext.retryAfter === undefined
-										? {}
-										: { retryAfter: apiContext.retryAfter }),
-								}),
+										operation: apiContext.operation,
+										resource: apiContext.resource,
+										...(apiContext.statusCode === undefined
+											? {}
+											: { statusCode: apiContext.statusCode }),
+										...(apiContext.networkErrorCode === undefined
+											? {}
+											: { networkErrorCode: apiContext.networkErrorCode }),
+										...(apiContext.retryAfter === undefined
+											? {}
+											: { retryAfter: apiContext.retryAfter }),
+									}),
 						},
 						pairedItem: { item: itemIndex },
 					});

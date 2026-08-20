@@ -1,103 +1,86 @@
-# n8n community node
+# n8n-nodes-trmnl Contributor Rules
 
-## Overview
-This is a project containing code for an n8n community node. n8n is a workflow
-automation platform where users build workflows with nodes, which are the
-building block of a workflow. Nodes can perform a range of actions, such as
-starting a workflow (called a "trigger node"), fetching and sending data, or
-processing and manipulating it. Besides that there are credentials - entities
-that store sensitive information on how to connect to external services and
-APIs. A node can require some credentials to be used. Community nodes are a way
-for anyone to create such nodes and add them to be used in n8n. All community
-nodes are named in a format: `n8n-nodes-<n>` or `@org/n8n-nodes-<n>`.
-Community nodes can also be submitted for approval to be used on n8n Cloud
-version. In that case there are rules that the node needs to follow in order to
-be approved
+This repository contains a programmatic n8n community action node, a Polling
+trigger, and three credential types for TRMNL. Read
+[`docs/architecture.md`](docs/architecture.md) before changing product or
+security boundaries and [`CONTRIBUTING.md`](CONTRIBUTING.md) before preparing a
+pull request.
 
-## Important notes
-- Follow the **rules and guidelines in this document and the linked docs
-  below** over any code examples.
-- All code blocks in these docs are **illustrative and incomplete**.
-  They **MUST NOT** be copied verbatim or assumed to be the final desired code.
-- Replace example names like `Example`, `Wordpress`, `wordpressApi`, etc.
-  with names that match the **actual service / node** you are building.
-- When in doubt, **generalize from the patterns**, don't replicate the exact
-  structure, fields, or values from the examples.
-- Produce the **full implementation** needed for the current project
-  (nodes, credentials, tests, etc.), not just fragments similar to examples.
-- If an example omits parts (e.g. types, operations, properties), **infer and
-  implement the missing parts** based on the real requirements / API docs.
-- Never output `Wordpress`-specific code unless the project is actually about
-  WordPress.
+## Implementation Shape
 
-## Project structure
-There are two main folders in this project:
-- `nodes` contains all of the nodes in a package (there can be more than 1).
-  The code for each node usually lives in its own folder
-- `credentials` contains all of the credentials in a package. Usually it's just
-  a single file for every credential
-So it looks something like this:
-.
-├── nodes/
-│   └── Example/
-│       ├── Example.node.ts
-│       └── ...
-├── credentials/
-│   └── Example.credentials.ts
-├── package.json
-└── ...
-It's important to note that `package.json` has a special field `n8n` that have
-information about nodes and credentials in a package:
-```json
-{
-  "name": "n8n-nodes-example",
-  "version": "1.0.0",
-  "n8n": {
-    "n8nNodesApiVersion": 1,
-    "strict": true,
-    "credentials": [
-        "dist/credentials/Example.credentials.js"
-    ],
-    "nodes": [
-      "dist/nodes/Example/Example.node.js"
-    ]
-  }
-}
+- Keep the action node programmatic. Payload validation, operation routing,
+  per-item pairing, synchronous Polling, response normalization, and redacted
+  error handling require explicit control flow that a declarative node would
+  obscure.
+- Keep resource descriptions in `nodes/Trmnl/descriptions/`, execution logic in
+  `nodes/Trmnl/actions/`, shared transport behavior in
+  `nodes/Trmnl/transport.ts`, and payload helpers in
+  `nodes/Trmnl/helpers/`.
+- Prefer the official `n8n-node` CLI for build, development, lint, and Cloud
+  support checks. Use proper n8n and TypeScript types; do not silence lint or
+  type errors without a specific documented reason.
+- If nodes or credentials are added, removed, or renamed, update the `n8n`
+  entrypoints in `package.json` and the package-contract tests together.
+
+## Compatibility and Versioning
+
+- Existing node names, credential names, resource and operation values,
+  parameter names, defaults, output shapes, and item pairing are saved-workflow
+  contracts.
+- Do not change those contracts silently. Preserve old behavior or introduce a
+  new n8n node version with regression fixtures for workflows saved against the
+  previous version.
+- Prefer light versioning for a focused behavior/default change. Consider full
+  versioning only for a genuinely separate programmatic implementation.
+- Keep `n8n-workflow` as a peer dependency, runtime `dependencies` empty, n8n
+  strict mode enabled, and the single pnpm lockfile authoritative.
+
+## Credentials and Security
+
+- Preserve the three trust boundaries: Private Plugin Webhook URL/UUID, Account
+  API Bearer key, and incoming Polling Header Auth.
+- Secret fields must remain masked. Never log, commit, echo in errors, or place
+  in fixtures any API key, webhook URL, Plugin Setting UUID, Polling header,
+  account data, device identifier, or workflow credential.
+- Keep endpoint normalization narrowly scoped to documented TRMNL Private
+  Plugin URLs and UUID shorthand. Do not turn credentials into arbitrary URL
+  fetchers.
+- External failures must remain credential-safe `NodeApiError` results; local
+  validation failures remain `NodeOperationError`. Continue-on-fail output may
+  contain only redacted operation context.
+- Writes are single-attempt by default. Do not add automatic retries to content,
+  markup, playlist, or device mutations without an explicit idempotency review.
+
+## Validation and Evidence
+
+Before requesting review, run the relevant subset of:
+
+```bash
+pnpm test
+pnpm lint
+pnpm format:check
+pnpm pack --dry-run
+pnpm exec n8n-node cloud-support
 ```
-`nodes` and `credentials` keys contain paths to transpiled JS files in a `dist`
-folder for the nodes and credentials respectively. If you add/remove/rename
-nodes and/or credentials, you need to make sure to update `n8n.nodes` and
-`n8n.credentials` keys in `package.json` accordingly. Initial files in the
-project _may_ contain example nodes and/or credentials that need to be
-**removed or renamed** once you start making an actual node.
 
-## Key guidelines
-- Use the `n8n-node` CLI tool **whenever possible** for building, dev mode,
-  linting, etc.
-- **Always** address any lint/typecheck errors/warnings, unless there is a
-  **very specific reason** to ignore/disable it
-- Make sure to use **proper types whenever possible**
-- Do not update the npm package version or maintain a committed changelog.
-  `.github/workflows/publish.yml` derives the published version from the stable
-  GitHub Release tag, and `.github/release.yml` generates the release notes.
-- Read `.agents/workflow.md` for more info
+Use `pnpm dev` when editor or live-service behavior needs validation. Follow
+[`docs/manual-test-matrix.md`](docs/manual-test-matrix.md) for hosted checks.
+Report automated/package evidence separately from n8n execution, hosted TRMNL
+state or preview, restoration, and physical-device evidence.
 
-## Context-specific docs
-Load these before working on the relevant area:
+Fixtures must be synthetic and redacted. Any test that mutates hosted state
+requires an explicit checkpoint, an exact backup outside the repository, and
+independent restoration verification.
 
-| Working on...                        | Read first                                                          |
-|--------------------------------------|---------------------------------------------------------------------|
-| Any node file in `nodes/`            | `.agents/nodes.md` and `.agents/properties.md`                      |
-| A declarative-style node             | above + `.agents/nodes-declarative.md`                              |
-| A programmatic-style node            | above + `.agents/nodes-programmatic.md`                             |
-| Files in `credentials/`              | `.agents/credentials.md`                                            |
-| Adding a new version to a node       | `.agents/versioning.md`                                             |
-| Starting a new task or planning      | `.agents/workflow.md`                                               |
+## Release Boundary
 
-## Additional resources
-If you need any extra information, here are links to n8n's official docs
-regarding building community nodes:
-- https://docs.n8n.io/integrations/community-nodes/build-community-nodes/
-- https://docs.n8n.io/integrations/creating-nodes/overview/
-- https://docs.n8n.io/integrations/creating-nodes/build/reference/
-- https://docs.n8n.io/integrations/creating-nodes/build/reference/ux-guidelines/
+- Do not bump the committed package version or add a changelog. The stable
+  GitHub Release tag supplies the published version, and GitHub-generated notes
+  are the release history.
+- Do not run `n8n-node release` directly or attempt local publication. The
+  guarded `pnpm release` script is for the GitHub Release workflow only.
+- Commit, push, pull request, merge, tag, GitHub Release, and npm publication are
+  separate approval boundaries. Never expand implementation work into one of
+  those actions without explicit authorization.
+- The canonical process is documented in
+  [`docs/releasing.md`](docs/releasing.md).

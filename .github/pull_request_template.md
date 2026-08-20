@@ -8,6 +8,7 @@
 
 - [ ] `pnpm test`
 - [ ] `pnpm lint`
+- [ ] `pnpm format:check`
 - [ ] `pnpm pack --dry-run` (package or dependency changes)
 - [ ] Relevant checks from `docs/manual-test-matrix.md` (behavior or integration changes)
 
@@ -22,8 +23,8 @@ internal changes.
 ## Compatibility and security
 
 - [ ] Existing node, operation, parameter, and credential names remain
-  compatible, or the breaking change was discussed first.
+      compatible, or the breaking change was discussed first.
 - [ ] No real credentials, webhook URLs, plugin UUIDs, polling headers, account
-  data, device identifiers, or other secrets are included.
+      data, device identifiers, or other secrets are included.
 - [ ] The package version is unchanged and no committed changelog is added;
-  releases derive both from GitHub tags and merged pull requests.
+      releases derive both from GitHub tags and merged pull requests.

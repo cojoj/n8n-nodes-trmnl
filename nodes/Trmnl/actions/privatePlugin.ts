@@ -1,4 +1,9 @@
-import type { IDataObject, IExecuteFunctions, IHttpRequestOptions } from 'n8n-workflow';
+import type {
+	ICredentialDataDecryptedObject,
+	IDataObject,
+	IExecuteFunctions,
+	IHttpRequestOptions,
+} from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
 import {
@@ -13,7 +18,7 @@ import {
 import { trmnlPrivatePluginApiRequest } from '../transport';
 import { normalizeResponse, unwrapValidationResult } from '../utils';
 
-type TrmnlPrivatePluginCredentials = {
+type TrmnlPrivatePluginCredentials = ICredentialDataDecryptedObject & {
 	webhookUrlOrUuid: string;
 };
 
@@ -73,6 +78,14 @@ export async function setPrivatePluginContent(
 	const payloadSizeBytes = getJsonSizeBytes(body);
 	const payloadLimitBytes = Number(options.payloadLimitBytes ?? DEFAULT_PAYLOAD_LIMIT_BYTES);
 
+	if (!Number.isSafeInteger(payloadLimitBytes) || payloadLimitBytes < 1) {
+		throw new NodeOperationError(
+			this.getNode(),
+			'Payload Limit Bytes must be a positive safe integer.',
+			{ itemIndex },
+		);
+	}
+
 	if (payloadSizeBytes > payloadLimitBytes) {
 		throw new NodeOperationError(
 			this.getNode(),
@@ -100,6 +113,7 @@ export async function setPrivatePluginContent(
 			target: 'Private Plugin content endpoint',
 			write: true,
 		},
+		credentials,
 	);
 
 	return {
@@ -142,6 +156,7 @@ export async function getPrivatePluginContent(
 			resource: 'privatePlugin',
 			target: 'Private Plugin content endpoint',
 		},
+		credentials,
 	);
 
 	return {

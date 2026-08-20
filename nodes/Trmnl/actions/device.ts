@@ -9,9 +9,13 @@ function getDeviceId(executeFunctions: IExecuteFunctions, itemIndex: number): nu
 	const numericValue = Number(value);
 
 	if (!/^\d+$/.test(value) || !Number.isSafeInteger(numericValue) || numericValue <= 0) {
-		throw new NodeOperationError(executeFunctions.getNode(), 'Device ID must be a positive integer.', {
-			itemIndex,
-		});
+		throw new NodeOperationError(
+			executeFunctions.getNode(),
+			'Device ID must be a positive integer.',
+			{
+				itemIndex,
+			},
+		);
 	}
 
 	return numericValue;
@@ -45,12 +49,7 @@ function getMinuteOfDay(
 	const value = executeFunctions.getNodeParameter(name, itemIndex);
 	const numericValue = Number(value);
 
-	if (
-		value === '' ||
-		!Number.isInteger(numericValue) ||
-		numericValue < 0 ||
-		numericValue > 1439
-	) {
+	if (value === '' || !Number.isInteger(numericValue) || numericValue < 0 || numericValue > 1439) {
 		throw new NodeOperationError(
 			executeFunctions.getNode(),
 			`${displayName} must be an integer from 0 to 1439.`,
@@ -88,10 +87,7 @@ export async function listDevices(
 	return normalizedResponse.data.map((device) => normalizeResponse(device));
 }
 
-export async function getDevice(
-	this: IExecuteFunctions,
-	itemIndex: number,
-): Promise<IDataObject> {
+export async function getDevice(this: IExecuteFunctions, itemIndex: number): Promise<IDataObject> {
 	const deviceId = getDeviceId(this, itemIndex);
 
 	const response = await trmnlAccountApiRequest.call(
@@ -138,12 +134,7 @@ export async function updateDeviceSleepMode(
 			'sleepStartTime',
 			'Sleep Start',
 		);
-		requestedSettings.sleep_end_time = getMinuteOfDay(
-			this,
-			itemIndex,
-			'sleepEndTime',
-			'Sleep End',
-		);
+		requestedSettings.sleep_end_time = getMinuteOfDay(this, itemIndex, 'sleepEndTime', 'Sleep End');
 	}
 
 	const response = await trmnlAccountApiRequest.call(

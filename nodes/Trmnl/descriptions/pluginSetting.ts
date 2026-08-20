@@ -39,7 +39,7 @@ export const pluginSettingProperties: INodeProperties[] = [
 			{
 				name: 'Update Data',
 				value: 'updateData',
-				description: 'Update server-side data for a Plugin Setting',
+				description: 'Update Account API data for a compatible Plugin Setting',
 				action: 'Update plugin setting data',
 			},
 			{
@@ -211,7 +211,7 @@ export const pluginSettingProperties: INodeProperties[] = [
 	},
 	{
 		displayName:
-			'Update Data mutates server-side Plugin Setting data. It does not Force Refresh or prove delivery to a physical device.',
+			'Update Data mutates Account API data only for Plugin Settings that support it. For a Webhook Private Plugin, use Private Plugin → Set/Get Content instead. It does not Force Refresh or prove delivery to a physical device.',
 		name: 'pluginSettingDataWriteNotice',
 		type: 'notice',
 		default: '',

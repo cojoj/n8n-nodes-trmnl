@@ -23,18 +23,21 @@ provenance automatically; it does not use a long-lived npm token.
    `.github/workflows/publish.yml`.
 
 The workflow checks out the released tag and refuses to publish unless the tag
-uses stable semantic versioning and points to a commit on `main`. It then:
+uses stable semantic versioning and points to the current `main` commit. It
+then:
 
 1. stamps `package.json` with the version derived from the tag;
-2. runs the n8n lint and build release path; and
-3. publishes through the existing npm Trusted Publisher with provenance.
+2. runs the full package tests, lint, formatting, and n8n Cloud-support check;
+3. delegates to the guarded n8n GitHub Actions release path; and
+4. publishes through the existing npm Trusted Publisher with provenance.
 
 The package version change exists only in the published artifact. Contributors
 do not maintain a committed changelog or prepare a version-bump pull request.
 
-Do not run `pnpm release` locally. Outside GitHub Actions, that command owns the
-version bump, tag, push, and GitHub Release, which bypasses this button-driven
-flow.
+Do not run `n8n-node release` directly. `pnpm release` is a guarded CI-only
+entrypoint and refuses to run outside the GitHub Release workflow. Creating a
+tag, publishing a GitHub Release, and publishing to npm remain separate
+maintainer approval boundaries.
 
 Pre-releases remain intentionally skipped until an npm dist-tag policy is
 added.

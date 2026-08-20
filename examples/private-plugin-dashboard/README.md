@@ -1,10 +1,10 @@
 # Private Plugin Dashboard Example
 
-This example is the smallest verified loop for `n8n-nodes-trmnl`:
+This example is the smallest setup loop for `n8n-nodes-trmnl`:
 
 1. n8n sends JSON merge variables to a TRMNL Private Plugin webhook.
 2. TRMNL renders the Liquid markup.
-3. The device shows the screen on its next refresh or check-in.
+3. The device can show the screen on a later refresh or check-in.
 
 ## TRMNL Setup
 

@@ -21,6 +21,7 @@ corepack enable
 pnpm install --frozen-lockfile
 pnpm test
 pnpm lint
+pnpm format:check
 ```
 
 `pnpm test` builds the package before running the automated tests. Before
@@ -50,10 +51,11 @@ live TRMNL service.
 
 ## Dependency Maintenance
 
-The `Latest n8n Compatibility` workflow runs daily. It updates
-`@n8n/node-cli` only inside an isolated, read-only runner and executes the full
-build and test suite. It does not commit changes, open pull requests, publish
-packages, or prove that an update is ready to merge.
+The `Latest n8n Runtime and Tooling Compatibility` workflow runs daily. It
+updates `n8n-workflow` and `@n8n/node-cli` only inside an ephemeral runner and
+executes the full build, test, lint, and Cloud-support checks. It does not
+commit changes, open pull requests, publish packages, or prove that an update
+is ready to merge.
 
 Review the complete development toolchain weekly with:
 
@@ -99,4 +101,4 @@ Keep each pull request focused and explain:
 - which live checks were completed, or why they were not required.
 
 Do not commit generated `dist/` output. Before requesting review, run
-`pnpm test`, `pnpm lint`, and any relevant manual checks.
+`pnpm test`, `pnpm lint`, `pnpm format:check`, and any relevant manual checks.

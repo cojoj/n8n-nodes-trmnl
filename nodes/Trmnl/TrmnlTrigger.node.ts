@@ -8,6 +8,7 @@ import type {
 	IHookFunctions,
 	INodeCredentialTestResult,
 	INodeExecutionData,
+	INodeProperties,
 	INodeType,
 	INodeTypeDescription,
 	IWebhookFunctions,
@@ -22,13 +23,42 @@ type HttpHeaderAuthCredentials = {
 
 const HTTP_HEADER_NAME_PATTERN = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
 
+function authenticationProperty(
+	version: 1 | 1.1,
+	defaultValue: 'headerAuth' | 'none',
+): INodeProperties {
+	return {
+		displayName: 'Authentication',
+		name: 'authentication',
+		type: 'options',
+		noDataExpression: true,
+		options: [
+			{
+				name: 'Header Auth',
+				value: 'headerAuth',
+			},
+			{
+				name: 'None',
+				value: 'none',
+			},
+		],
+		default: defaultValue,
+		description: 'Header Auth is recommended because TRMNL can send a custom Polling Header',
+		displayOptions: {
+			show: {
+				'@version': [version],
+			},
+		},
+	};
+}
+
 export class TrmnlTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'TRMNL Trigger',
 		name: 'trmnlTrigger',
 		icon: { light: 'file:trmnl.svg', dark: 'file:trmnl.dark.svg' },
 		group: ['trigger'],
-		version: 1,
+		version: [1, 1.1],
 		subtitle: 'Polling',
 		description: 'Starts the workflow when TRMNL requests Private Plugin data',
 		eventTriggerDescription: 'Waiting for TRMNL to request Private Plugin data',
@@ -38,7 +68,6 @@ export class TrmnlTrigger implements INodeType {
 		},
 		inputs: [],
 		outputs: [NodeConnectionTypes.Main],
-		usableAsTool: true,
 		credentials: [
 			{
 				name: 'trmnlPollingHeaderAuthApi',
@@ -79,24 +108,8 @@ export class TrmnlTrigger implements INodeType {
 				default: 'GET',
 				description: 'Must match the Polling Verb configured in the TRMNL Private Plugin',
 			},
-			{
-				displayName: 'Authentication',
-				name: 'authentication',
-				type: 'options',
-				noDataExpression: true,
-				options: [
-					{
-						name: 'Header Auth',
-						value: 'headerAuth',
-					},
-					{
-						name: 'None',
-						value: 'none',
-					},
-				],
-				default: 'none',
-				description: 'Header Auth is recommended because TRMNL can send a custom Polling Header',
-			},
+			authenticationProperty(1, 'none'),
+			authenticationProperty(1.1, 'headerAuth'),
 			{
 				displayName:
 					"Paste this node's production URL into the TRMNL Polling URL field. The workflow must be active and publicly reachable over HTTPS.",
@@ -195,7 +208,8 @@ export class TrmnlTrigger implements INodeType {
 }
 
 async function authenticateRequest(this: IWebhookFunctions): Promise<boolean> {
-	const authentication = this.getNodeParameter('authentication', 'none') as string;
+	const defaultAuthentication = this.getNode().typeVersion >= 1.1 ? 'headerAuth' : 'none';
+	const authentication = this.getNodeParameter('authentication', defaultAuthentication) as string;
 
 	if (authentication === 'none') {
 		return true;
@@ -236,9 +250,7 @@ async function authenticateRequest(this: IWebhookFunctions): Promise<boolean> {
 
 function validateHeaderAuthCredentials(
 	credentials: HttpHeaderAuthCredentials,
-):
-	| { ok: true; headerName: string; headerValue: string }
-	| { ok: false; error: string } {
+): { ok: true; headerName: string; headerValue: string } | { ok: false; error: string } {
 	const headerName = String(credentials.headerName ?? '').trim();
 	const headerValue = String(credentials.headerValue ?? '');
 

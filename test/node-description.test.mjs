@@ -78,9 +78,7 @@ describe('TRMNL node description', () => {
 		const { properties } = new Trmnl().description;
 		const playlistItemId = properties.find((property) => property.name === 'playlistItemId');
 		const visible = properties.find((property) => property.name === 'visible');
-		const notice = properties.find(
-			(property) => property.name === 'playlistItemVisibilityNotice',
-		);
+		const notice = properties.find((property) => property.name === 'playlistItemVisibilityNotice');
 
 		assert.ok(playlistItemId);
 		assert.equal(playlistItemId.type, 'string');
@@ -116,8 +114,14 @@ describe('TRMNL node description', () => {
 			assert.equal(property.typeOptions?.maxValue, 1439);
 			assert.deepEqual(property.displayOptions?.show?.sleepModeEnabled, [true]);
 		}
-		assert.equal(properties.some((property) => property.name === 'percentCharged'), false);
-		assert.equal(properties.some((property) => property.name === 'percent_charged'), false);
+		assert.equal(
+			properties.some((property) => property.name === 'percentCharged'),
+			false,
+		);
+		assert.equal(
+			properties.some((property) => property.name === 'percent_charged'),
+			false,
+		);
 		assert.ok(notice);
 		assert.match(notice.displayName, /does not push content/);
 		assert.match(notice.displayName, /Force Refresh/);
@@ -181,6 +185,15 @@ describe('TRMNL node description', () => {
 		assert.ok(json);
 		assert.equal(json.type, 'json');
 		assert.deepEqual(json.displayOptions?.hide?.pluginSettingDataMode, ['fields']);
+
+		const updateOperation = new Trmnl().description.properties
+			.find(
+				(property) =>
+					property.name === 'operation' &&
+					property.displayOptions?.show?.resource?.includes('pluginSetting'),
+			)
+			?.options?.find((option) => option.value === 'updateData');
+		assert.match(updateOperation?.description ?? '', /compatible Plugin Setting/);
 	});
 
 	it('keeps saved Plugin Setting Liquid markup literal and explains write semantics', () => {
@@ -198,7 +211,9 @@ describe('TRMNL node description', () => {
 		assert.equal(markup.noDataExpression, true);
 		assert.match(markup.description ?? '', /saved to TRMNL unchanged/);
 		assert.ok(dataNotice);
-		assert.match(dataNotice.displayName, /server-side Plugin Setting data/);
+		assert.match(dataNotice.displayName, /only for Plugin Settings that support it/);
+		assert.match(dataNotice.displayName, /Webhook Private Plugin/);
+		assert.match(dataNotice.displayName, /Private Plugin → Set\/Get Content/);
 		assert.match(dataNotice.displayName, /does not Force Refresh/);
 		assert.ok(markupNotice);
 		assert.match(markupNotice.displayName, /future TRMNL renders/);

@@ -1,15 +1,19 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { TrmnlPrivatePluginApi } from '../dist/credentials/TrmnlPrivatePluginApi.credentials.js';
 import { Trmnl } from '../dist/nodes/Trmnl/Trmnl.node.js';
 import { loadFixture } from './helpers/load-fixture.mjs';
 
 function createExecuteContext({
 	parameters,
+	parametersByItem,
 	credentials = {
 		trmnlPrivatePluginApi: { webhookUrlOrUuid: 'test-plugin-uuid' },
 		trmnlAccountApi: { apiKey: 'user_test' },
 	},
+	credentialsByItem,
+	inputItems = [{ json: {} }],
 	httpResponse = { accepted: true },
 	httpError,
 	continueOnFail = false,
@@ -33,18 +37,41 @@ function createExecuteContext({
 
 		return httpResponse;
 	};
+	const privatePluginCredential = new TrmnlPrivatePluginApi();
 
 	return {
 		context: {
-			getInputData: () => [{ json: {} }],
-			getNodeParameter: (name, _itemIndex, fallback) =>
-				Object.prototype.hasOwnProperty.call(parameters, name) ? parameters[name] : fallback,
+			getInputData: () => inputItems,
+			getNodeParameter: (name, itemIndex, fallback) => {
+				const itemParameters = parametersByItem?.[itemIndex] ?? parameters;
+
+				return Object.prototype.hasOwnProperty.call(itemParameters, name)
+					? itemParameters[name]
+					: fallback;
+			},
 			getNode: () => node,
-			getCredentials: async (credentialType) => credentials[credentialType],
+			getCredentials: async (credentialType, itemIndex) =>
+				credentialsByItem?.[itemIndex]?.[credentialType] ?? credentials[credentialType],
 			continueOnFail: () => continueOnFail,
 			helpers: {
-				httpRequestWithAuthentication: async (authentication, options) =>
-					request(authentication, options),
+				httpRequestWithAuthentication: async (
+					authentication,
+					options,
+					additionalCredentialOptions,
+				) => {
+					if (authentication !== 'trmnlPrivatePluginApi') {
+						return await request(authentication, options);
+					}
+
+					const credentialData =
+						additionalCredentialOptions?.credentialsDecrypted?.data ?? credentials[authentication];
+					const authenticatedOptions = await privatePluginCredential.authenticate(
+						credentialData,
+						options,
+					);
+
+					return await request(authentication, authenticatedOptions);
+				},
 				httpRequest: async (options) => request(undefined, options),
 			},
 		},
@@ -661,6 +688,87 @@ describe('TRMNL node execution', () => {
 			deviceUpdate: 'next_refresh',
 			response: httpResponse,
 		});
+		assert.deepEqual(result[0][0].pairedItem, { item: 0 });
+	});
+
+	it('keeps item-specific parameters, credentials, requests, and pairing across inputs', async () => {
+		const parametersByItem = [
+			setContentParameters({ mergeVariables: '{"title":"First"}' }),
+			setContentParameters({ mergeVariables: '{"title":"Second"}' }),
+		];
+		const { result, requests } = await executeWith({
+			parameters: parametersByItem[0],
+			parametersByItem,
+			credentialsByItem: [
+				{ trmnlPrivatePluginApi: { webhookUrlOrUuid: 'first-plugin-uuid' } },
+				{ trmnlPrivatePluginApi: { webhookUrlOrUuid: 'second-plugin-uuid' } },
+			],
+			inputItems: [{ json: { source: 'first' } }, { json: { source: 'second' } }],
+		});
+
+		assert.deepEqual(
+			requests.map(({ options }) => ({ url: options.url, body: options.body })),
+			[
+				{
+					url: 'https://trmnl.com/api/custom_plugins/first-plugin-uuid',
+					body: { merge_variables: { title: 'First' } },
+				},
+				{
+					url: 'https://trmnl.com/api/custom_plugins/second-plugin-uuid',
+					body: { merge_variables: { title: 'Second' } },
+				},
+			],
+		);
+		assert.deepEqual(
+			result[0].map((item) => item.pairedItem),
+			[{ item: 0 }, { item: 1 }],
+		);
+		assert.deepEqual(
+			result[0].map((item) => item.json.mergeVariables),
+			[{ title: 'First' }, { title: 'Second' }],
+		);
+	});
+
+	it('keeps item-specific Private Plugin credentials for Get Content', async () => {
+		const { result, requests } = await executeWith({
+			parameters: { resource: 'privatePlugin', operation: 'getContent' },
+			credentialsByItem: [
+				{ trmnlPrivatePluginApi: { webhookUrlOrUuid: 'first-plugin-uuid' } },
+				{ trmnlPrivatePluginApi: { webhookUrlOrUuid: 'second-plugin-uuid' } },
+			],
+			inputItems: [{ json: { source: 'first' } }, { json: { source: 'second' } }],
+		});
+
+		assert.deepEqual(
+			requests.map(({ options }) => options.url),
+			[
+				'https://trmnl.com/api/custom_plugins/first-plugin-uuid',
+				'https://trmnl.com/api/custom_plugins/second-plugin-uuid',
+			],
+		);
+		assert.deepEqual(
+			result[0].map((item) => item.pairedItem),
+			[{ item: 0 }, { item: 1 }],
+		);
+	});
+
+	it('rejects an unsupported Private Plugin endpoint before HTTP without exposing its token', async () => {
+		const syntheticSecret = 'synthetic-secret_token-123';
+		const { context, requests } = createExecuteContext({
+			parameters: setContentParameters(),
+			credentials: {
+				trmnlPrivatePluginApi: {
+					webhookUrlOrUuid: `https://example.com/api/custom_plugins/${syntheticSecret}`,
+				},
+			},
+		});
+
+		await assert.rejects(new Trmnl().execute.call(context), (error) => {
+			assert.match(error.message, /documented TRMNL origin/);
+			assert.equal(error.message.includes(syntheticSecret), false);
+			return true;
+		});
+		assert.equal(requests.length, 0);
 	});
 
 	it('gets current Private Plugin content from the webhook endpoint', async () => {
@@ -685,6 +793,7 @@ describe('TRMNL node execution', () => {
 			success: true,
 			response: httpResponse,
 		});
+		assert.deepEqual(result[0][0].pairedItem, { item: 0 });
 	});
 
 	it('renders Liquid markup without Private Plugin credentials', async () => {
@@ -812,6 +921,28 @@ describe('TRMNL node execution', () => {
 		assert.equal(requests.length, 0);
 	});
 
+	it('rejects invalid payload limits before making a request', async () => {
+		for (const payloadLimitBytes of [
+			0,
+			-1,
+			1.5,
+			Number.NaN,
+			Number.POSITIVE_INFINITY,
+			Number.MAX_SAFE_INTEGER + 1,
+			'not-a-number',
+		]) {
+			const { context, requests } = createExecuteContext({
+				parameters: setContentParameters({ options: { payloadLimitBytes } }),
+			});
+
+			await assert.rejects(
+				new Trmnl().execute.call(context),
+				/Payload Limit Bytes must be a positive safe integer/,
+			);
+			assert.equal(requests.length, 0);
+		}
+	});
+
 	it('rejects an oversized payload before making a request', async () => {
 		const { context, requests } = createExecuteContext({
 			parameters: setContentParameters({
@@ -826,5 +957,4 @@ describe('TRMNL node execution', () => {
 		);
 		assert.equal(requests.length, 0);
 	});
-
 });

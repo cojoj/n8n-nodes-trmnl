@@ -2,9 +2,9 @@
 
 ## Supported Versions
 
-This project is currently pre-1.0. Security fixes are made against the latest
-published release and the default branch. If you encounter an issue on an older
-release, first verify whether it is still present in the latest version.
+Security fixes are made against the latest published release and the default
+branch. If you encounter an issue on an older release, first verify whether it
+is still present in the latest version.
 
 ## Reporting a Vulnerability
 
