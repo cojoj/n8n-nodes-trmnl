@@ -101,20 +101,20 @@ describe('TRMNL Trigger', () => {
 		assert.equal(triggerNode.parameters.authentication, 'headerAuth');
 	});
 
-	it('documents current hosted Polling Header syntax and synchronous production requirements', () => {
+	it('keeps Polling guidance concise while documenting production requirements', () => {
 		const properties = new TrmnlTrigger().description.properties;
-		const headerNotice = properties.find(
-			(property) => property.name === 'pollingHeaderFormatNotice',
+		const authenticationProperties = properties.filter(
+			(property) => property.name === 'authentication',
 		);
 		const setupNotice = properties.find((property) => property.name === 'pollingSetupNotice');
-		const synchronousNotice = properties.find(
-			(property) => property.name === 'synchronousPollingNotice',
-		);
 
-		assert.match(headerNotice?.displayName ?? '', /Name: Value \(or name=value\)/);
+		assert.equal(properties.filter((property) => property.type === 'notice').length, 1);
+		for (const authenticationProperty of authenticationProperties) {
+			assert.match(authenticationProperty.description ?? '', /Name: Value/);
+		}
 		assert.match(setupNotice?.displayName ?? '', /active and publicly reachable over HTTPS/);
-		assert.match(synchronousNotice?.displayName ?? '', /Keep the path fast/);
-		assert.doesNotMatch(synchronousNotice?.displayName ?? '', /\d+ ?(ms|seconds?)/i);
+		assert.match(setupNotice?.displayName ?? '', /final node's first root JSON object/);
+		assert.doesNotMatch(setupNotice?.displayName ?? '', /\d+ ?(ms|seconds?)/i);
 	});
 
 	it('uses no-op webhook lifecycle hooks because TRMNL URLs are configured manually', async () => {

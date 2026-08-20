@@ -43,7 +43,8 @@ function authenticationProperty(
 			},
 		],
 		default: defaultValue,
-		description: 'Header Auth is recommended because TRMNL can send a custom Polling Header',
+		description:
+			'Header Auth is recommended. Enter the same Name: Value pair in TRMNL Polling Headers.',
 		displayOptions: {
 			show: {
 				'@version': [version],
@@ -112,27 +113,8 @@ export class TrmnlTrigger implements INodeType {
 			authenticationProperty(1.1, 'headerAuth'),
 			{
 				displayName:
-					"Paste this node's production URL into the TRMNL Polling URL field. The workflow must be active and publicly reachable over HTTPS.",
+					"Use this node's production URL in TRMNL. The workflow must be active and publicly reachable over HTTPS; TRMNL receives the final node's first root JSON object.",
 				name: 'pollingSetupNotice',
-				type: 'notice',
-				default: '',
-			},
-			{
-				displayName:
-					'In TRMNL Polling Headers, add the credential pair on one line as Name: Value (or name=value). The value must match exactly.',
-				name: 'pollingHeaderFormatNotice',
-				type: 'notice',
-				default: '',
-				displayOptions: {
-					show: {
-						authentication: ['headerAuth'],
-					},
-				},
-			},
-			{
-				displayName:
-					'TRMNL waits for this workflow to finish. Keep the path fast and make the final node output the root JSON object used by the markup.',
-				name: 'synchronousPollingNotice',
 				type: 'notice',
 				default: '',
 			},
