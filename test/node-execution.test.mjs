@@ -691,6 +691,17 @@ describe('TRMNL node execution', () => {
 		assert.deepEqual(result[0][0].pairedItem, { item: 0 });
 	});
 
+	it('keeps omitted merge-variable mode as JSON for saved v1 workflows', async () => {
+		const parameters = setContentParameters();
+		delete parameters.mergeVariablesMode;
+		const { requests } = await executeWith({ parameters });
+
+		assert.equal(requests.length, 1);
+		assert.deepEqual(requests[0].options.body, {
+			merge_variables: { title: 'Hello' },
+		});
+	});
+
 	it('keeps item-specific parameters, credentials, requests, and pairing across inputs', async () => {
 		const parametersByItem = [
 			setContentParameters({ mergeVariables: '{"title":"First"}' }),
@@ -941,6 +952,32 @@ describe('TRMNL node execution', () => {
 			);
 			assert.equal(requests.length, 0);
 		}
+	});
+
+	it('accepts a payload above the Regular limit when TRMNL+ is selected', async () => {
+		const { result, requests } = await executeWith({
+			parameters: setContentParameters({
+				mergeVariables: JSON.stringify({ blob: 'x'.repeat(2100) }),
+				options: { payloadLimit: 5120 },
+			}),
+		});
+
+		assert.equal(requests.length, 1);
+		assert.equal(result[0][0].json.payloadLimitBytes, 5120);
+		assert.ok(result[0][0].json.payloadSizeBytes > 2048);
+		assert.ok(result[0][0].json.payloadSizeBytes < 5120);
+	});
+
+	it('rejects a payload limit outside the supported plan choices', async () => {
+		const { context, requests } = createExecuteContext({
+			parameters: setContentParameters({ options: { payloadLimit: 4096 } }),
+		});
+
+		await assert.rejects(
+			new Trmnl().execute.call(context),
+			/Payload Limit must be Regular \(2 KB\) or TRMNL\+ \(5 KB\)/,
+		);
+		assert.equal(requests.length, 0);
 	});
 
 	it('rejects an oversized payload before making a request', async () => {

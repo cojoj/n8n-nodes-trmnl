@@ -62,7 +62,7 @@ layers.
 | MT-02 | Get Content after MT-01 | Returned content matches stored variables without creating a new render or device update. |
 | MT-03 | Invalid JSON such as `{"title":}` | n8n blocks it or reports valid-JSON failure before an HTTP request. |
 | MT-04 | Non-object JSON such as `[]` | Local object validation fails before an HTTP request. |
-| MT-05 | Payload larger than a deliberately low test limit | Local byte-size validation fails; no Activity or hosted-state change occurs. |
+| MT-05 | Payload larger than the selected Regular (2 KB) or TRMNL+ (5 KB) limit | Local byte-size validation fails; no Activity or hosted-state change occurs. |
 | MT-06 | Replace, then Deep Merge, then Get Content | Updated nested values change while untouched nested and top-level values remain. |
 | MT-07 | Replace, then two Stream updates with a limit | Stored arrays append and trim to the configured limit; all retained top-level keys are sent on every update. |
 | MT-08 | Safe 404 or naturally occurring API failure, with and without On Error → Continue | Normal mode fails without success output. Continue mode exposes only redacted resource, operation, status, and optional Retry-After context. |

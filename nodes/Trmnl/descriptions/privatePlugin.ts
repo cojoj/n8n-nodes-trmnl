@@ -6,6 +6,39 @@ import {
 	TRMNL_PLUS_PAYLOAD_LIMIT_BYTES,
 } from '../helpers/payload';
 
+function mergeVariablesModeProperty(
+	version: 1 | 1.1,
+	defaultValue: 'fields' | 'json',
+): INodeProperties {
+	return {
+		displayName: 'Specify Merge Variables',
+		name: 'mergeVariablesMode',
+		type: 'options',
+		noDataExpression: true,
+		options: [
+			{
+				name: 'Using Fields Below',
+				value: 'fields',
+				description: 'Add merge variables one by one',
+			},
+			{
+				name: 'Using JSON',
+				value: 'json',
+				description: 'Provide all merge variables as one JSON object',
+			},
+		],
+		default: defaultValue,
+		displayOptions: {
+			show: {
+				resource: ['privatePlugin'],
+				operation: ['setContent'],
+				'@version': [version],
+			},
+		},
+		description: 'How to define the merge variables sent to TRMNL',
+	};
+}
+
 export const privatePluginOperation: INodeProperties = {
 	displayName: 'Operation',
 	name: 'operation',
@@ -35,32 +68,8 @@ export const privatePluginOperation: INodeProperties = {
 };
 
 export const privatePluginFields: INodeProperties[] = [
-	{
-		displayName: 'Specify Merge Variables',
-		name: 'mergeVariablesMode',
-		type: 'options',
-		noDataExpression: true,
-		options: [
-			{
-				name: 'Using Fields Below',
-				value: 'fields',
-				description: 'Add merge variables one by one',
-			},
-			{
-				name: 'Using JSON',
-				value: 'json',
-				description: 'Provide all merge variables as one JSON object',
-			},
-		],
-		default: 'json',
-		displayOptions: {
-			show: {
-				resource: ['privatePlugin'],
-				operation: ['setContent'],
-			},
-		},
-		description: 'How to define the merge variables sent to TRMNL',
-	},
+	mergeVariablesModeProperty(1, 'json'),
+	mergeVariablesModeProperty(1.1, 'fields'),
 	{
 		displayName: 'Merge Variables',
 		name: 'mergeVariableAssignments',
@@ -86,8 +95,7 @@ export const privatePluginFields: INodeProperties[] = [
 		name: 'mergeVariables',
 		type: 'json',
 		required: true,
-		default:
-			'{\n  "title": "Hello from n8n",\n  "message": "TRMNL received this content from n8n.",\n  "items": [\n    {\n      "label": "Status",\n      "value": "Connected"\n    }\n  ]\n}',
+		default: '',
 		typeOptions: {
 			rows: 10,
 		},
@@ -178,14 +186,22 @@ export const privatePluginFields: INodeProperties[] = [
 		},
 		options: [
 			{
-				displayName: 'Payload Limit Bytes',
-				name: 'payloadLimitBytes',
-				type: 'number',
+				displayName: 'Payload Limit',
+				name: 'payloadLimit',
+				type: 'options',
 				default: DEFAULT_PAYLOAD_LIMIT_BYTES,
-				typeOptions: {
-					minValue: 1,
-				},
-				description: `Maximum request body size before this node fails locally. TRMNL regular limit is ${DEFAULT_PAYLOAD_LIMIT_BYTES} bytes; TRMNL+ is ${TRMNL_PLUS_PAYLOAD_LIMIT_BYTES} bytes.`,
+				options: [
+					{
+						name: 'Regular (2 KB)',
+						value: DEFAULT_PAYLOAD_LIMIT_BYTES,
+					},
+					{
+						name: 'TRMNL+ (5 KB)',
+						value: TRMNL_PLUS_PAYLOAD_LIMIT_BYTES,
+					},
+				],
+				description:
+					'Choose the request-size cap documented for your TRMNL plan. Validation happens locally; this setting does not change the server-side limit.',
 			},
 		],
 	},

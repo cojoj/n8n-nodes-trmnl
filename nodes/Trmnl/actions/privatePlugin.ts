@@ -9,6 +9,7 @@ import { NodeOperationError } from 'n8n-workflow';
 import {
 	DEFAULT_PAYLOAD_LIMIT_BYTES,
 	DEFAULT_STREAM_LIMIT,
+	TRMNL_PLUS_PAYLOAD_LIMIT_BYTES,
 	assignmentsToJsonObject,
 	buildPrivatePluginPayload,
 	getJsonSizeBytes,
@@ -76,14 +77,31 @@ export async function setPrivatePluginContent(
 	);
 
 	const payloadSizeBytes = getJsonSizeBytes(body);
-	const payloadLimitBytes = Number(options.payloadLimitBytes ?? DEFAULT_PAYLOAD_LIMIT_BYTES);
+	const legacyPayloadLimitBytes = options.payloadLimitBytes;
+	let payloadLimitBytes: number;
 
-	if (!Number.isSafeInteger(payloadLimitBytes) || payloadLimitBytes < 1) {
-		throw new NodeOperationError(
-			this.getNode(),
-			'Payload Limit Bytes must be a positive safe integer.',
-			{ itemIndex },
-		);
+	if (legacyPayloadLimitBytes !== undefined) {
+		// Preserve custom limits stored by workflows created before the plan selector existed.
+		payloadLimitBytes = Number(legacyPayloadLimitBytes);
+		if (!Number.isSafeInteger(payloadLimitBytes) || payloadLimitBytes < 1) {
+			throw new NodeOperationError(
+				this.getNode(),
+				'Payload Limit Bytes must be a positive safe integer.',
+				{ itemIndex },
+			);
+		}
+	} else {
+		payloadLimitBytes = Number(options.payloadLimit ?? DEFAULT_PAYLOAD_LIMIT_BYTES);
+		if (
+			payloadLimitBytes !== DEFAULT_PAYLOAD_LIMIT_BYTES &&
+			payloadLimitBytes !== TRMNL_PLUS_PAYLOAD_LIMIT_BYTES
+		) {
+			throw new NodeOperationError(
+				this.getNode(),
+				'Payload Limit must be Regular (2 KB) or TRMNL+ (5 KB).',
+				{ itemIndex },
+			);
+		}
 	}
 
 	if (payloadSizeBytes > payloadLimitBytes) {

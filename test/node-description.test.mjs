@@ -15,7 +15,7 @@ describe('TRMNL node description', () => {
 			assert.match(subtitle, new RegExp(`\\b${label}\\b`));
 		}
 		assert.doesNotMatch(subtitle, /operation.*resource|resource.*operation/);
-		assert.equal(version, 1);
+		assert.deepEqual(version, [1, 1.1]);
 	});
 
 	it('requires Account API credentials for Device, Playlist Item, and Plugin Setting operations', () => {
@@ -246,19 +246,44 @@ describe('TRMNL node description', () => {
 		assert.ok(options && 'options' in options && options.options);
 		assert.deepEqual(
 			options.options.map((option) => option.name),
-			['payloadLimitBytes'],
+			['payloadLimit'],
 		);
+		const payloadLimit = options.options[0];
+		assert.equal(payloadLimit.type, 'options');
+		assert.equal(payloadLimit.default, 2048);
+		assert.deepEqual(
+			payloadLimit.options.map((option) => ({ name: option.name, value: option.value })),
+			[
+				{ name: 'Regular (2 KB)', value: 2048 },
+				{ name: 'TRMNL+ (5 KB)', value: 5120 },
+			],
+		);
+		assert.match(payloadLimit.description, /Validation happens locally/);
+		assert.match(payloadLimit.description, /does not change the server-side limit/);
 	});
 
 	it('offers native fields and JSON merge variable modes', () => {
-		const { properties } = new Trmnl().description;
-		const mode = properties.find((property) => property.name === 'mergeVariablesMode');
-		assert.ok(mode && 'options' in mode && mode.options);
-		assert.equal(mode.default, 'json');
+		const { properties, version } = new Trmnl().description;
+		const modes = properties.filter((property) => property.name === 'mergeVariablesMode');
+		assert.deepEqual(version, [1, 1.1]);
+		assert.equal(modes.length, 2);
 		assert.deepEqual(
-			mode.options.map((option) => option.value),
-			['fields', 'json'],
+			modes.map((mode) => ({
+				default: mode.default,
+				version: mode.displayOptions?.show?.['@version'],
+			})),
+			[
+				{ default: 'json', version: [1] },
+				{ default: 'fields', version: [1.1] },
+			],
 		);
+		for (const mode of modes) {
+			assert.ok('options' in mode && mode.options);
+			assert.deepEqual(
+				mode.options.map((option) => option.value),
+				['fields', 'json'],
+			);
+		}
 
 		const assignments = properties.find((property) => property.name === 'mergeVariableAssignments');
 		assert.ok(assignments);
@@ -268,6 +293,8 @@ describe('TRMNL node description', () => {
 		const json = properties.find((property) => property.name === 'mergeVariables');
 		assert.ok(json);
 		assert.deepEqual(json.displayOptions?.hide?.mergeVariablesMode, ['fields']);
+		assert.equal(json.default, '');
+		assert.equal(json.placeholder, undefined);
 	});
 
 	it('keeps Liquid markup separate from n8n expressions', () => {
