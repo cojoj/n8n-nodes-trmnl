@@ -4,13 +4,17 @@ import { describe, it } from 'node:test';
 import { Trmnl } from '../dist/nodes/Trmnl/Trmnl.node.js';
 
 describe('TRMNL node description', () => {
-	it('provides light and dark icons', () => {
-		const { icon, version } = new Trmnl().description;
+	it('provides icons and a human-facing resource subtitle', () => {
+		const { icon, subtitle, version } = new Trmnl().description;
 
 		assert.deepEqual(icon, {
 			light: 'file:trmnl.svg',
 			dark: 'file:trmnl.dark.svg',
 		});
+		for (const label of ['Device', 'Markup', 'Playlist Item', 'Plugin Setting', 'Private Plugin']) {
+			assert.match(subtitle, new RegExp(`\\b${label}\\b`));
+		}
+		assert.doesNotMatch(subtitle, /operation.*resource|resource.*operation/);
 		assert.equal(version, 1);
 	});
 
