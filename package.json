@@ -5,6 +5,12 @@
 	"description": "n8n community nodes for TRMNL Private Plugins and Account API management.",
 	"license": "MIT",
 	"homepage": "https://github.com/cojoj/n8n-nodes-trmnl",
+	"bugs": {
+		"url": "https://github.com/cojoj/n8n-nodes-trmnl/issues"
+	},
+	"engines": {
+		"node": ">=22"
+	},
 	"keywords": [
 		"n8n-community-node-package",
 		"n8n",
@@ -25,22 +31,22 @@
 	},
 	"scripts": {
 		"build": "n8n-node build",
-		"build:watch": "tsc --watch",
 		"dev": "n8n-node dev",
 		"lint": "n8n-node lint",
 		"lint:fix": "n8n-node lint --fix",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
 		"release": "node scripts/publish-release.mjs",
 		"prepublishOnly": "n8n-node prerelease",
-		"test": "pnpm build && node --test test/*.test.mjs"
+		"test": "pnpm build && pnpm test:coverage",
+		"test:coverage": "node --experimental-test-coverage --test-coverage-lines=95 --test-coverage-branches=80 --test-coverage-functions=95 --test test/*.test.mjs"
 	},
 	"files": [
-		"dist/**/*.d.ts",
 		"dist/**/*.js",
 		"dist/**/*.js.map",
-		"dist/**/*.json",
+		"dist/nodes/**/*.json",
 		"dist/**/*.svg",
-		"docs",
-		"examples"
+		"docs/brand-assets.md"
 	],
 	"n8n": {
 		"n8nNodesApiVersion": 1,
@@ -56,10 +62,10 @@
 		]
 	},
 	"devDependencies": {
-		"@n8n/node-cli": "0.42.2",
+		"@n8n/node-cli": "0.45.1",
 		"eslint": "9.29.0",
-		"prettier": "3.6.2",
-		"typescript": "5.9.2"
+		"prettier": "3.9.6",
+		"typescript": "5.9.3"
 	},
 	"peerDependencies": {
 		"n8n-workflow": "*"

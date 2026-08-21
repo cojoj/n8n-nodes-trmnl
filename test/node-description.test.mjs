@@ -4,14 +4,18 @@ import { describe, it } from 'node:test';
 import { Trmnl } from '../dist/nodes/Trmnl/Trmnl.node.js';
 
 describe('TRMNL node description', () => {
-	it('provides light and dark icons', () => {
-		const { icon, version } = new Trmnl().description;
+	it('provides icons and a human-facing resource subtitle', () => {
+		const { icon, subtitle, version } = new Trmnl().description;
 
 		assert.deepEqual(icon, {
 			light: 'file:trmnl.svg',
 			dark: 'file:trmnl.dark.svg',
 		});
-		assert.equal(version, 1);
+		for (const label of ['Device', 'Markup', 'Playlist Item', 'Plugin Setting', 'Private Plugin']) {
+			assert.match(subtitle, new RegExp(`\\b${label}\\b`));
+		}
+		assert.doesNotMatch(subtitle, /operation.*resource|resource.*operation/);
+		assert.deepEqual(version, [1, 1.1, 1.2]);
 	});
 
 	it('requires Account API credentials for Device, Playlist Item, and Plugin Setting operations', () => {
@@ -78,9 +82,7 @@ describe('TRMNL node description', () => {
 		const { properties } = new Trmnl().description;
 		const playlistItemId = properties.find((property) => property.name === 'playlistItemId');
 		const visible = properties.find((property) => property.name === 'visible');
-		const notice = properties.find(
-			(property) => property.name === 'playlistItemVisibilityNotice',
-		);
+		const notice = properties.find((property) => property.name === 'playlistItemVisibilityNotice');
 
 		assert.ok(playlistItemId);
 		assert.equal(playlistItemId.type, 'string');
@@ -116,8 +118,14 @@ describe('TRMNL node description', () => {
 			assert.equal(property.typeOptions?.maxValue, 1439);
 			assert.deepEqual(property.displayOptions?.show?.sleepModeEnabled, [true]);
 		}
-		assert.equal(properties.some((property) => property.name === 'percentCharged'), false);
-		assert.equal(properties.some((property) => property.name === 'percent_charged'), false);
+		assert.equal(
+			properties.some((property) => property.name === 'percentCharged'),
+			false,
+		);
+		assert.equal(
+			properties.some((property) => property.name === 'percent_charged'),
+			false,
+		);
 		assert.ok(notice);
 		assert.match(notice.displayName, /does not push content/);
 		assert.match(notice.displayName, /Force Refresh/);
@@ -181,6 +189,16 @@ describe('TRMNL node description', () => {
 		assert.ok(json);
 		assert.equal(json.type, 'json');
 		assert.deepEqual(json.displayOptions?.hide?.pluginSettingDataMode, ['fields']);
+
+		const updateOperation = new Trmnl().description.properties
+			.find(
+				(property) =>
+					property.name === 'operation' &&
+					property.displayOptions?.show?.resource?.includes('pluginSetting'),
+			)
+			?.options?.find((option) => option.value === 'updateData');
+		assert.match(updateOperation?.description ?? '', /supported Plugin Setting/);
+		assert.match(json.description ?? '', /Calendar writes from TRMNL Companion/);
 	});
 
 	it('keeps saved Plugin Setting Liquid markup literal and explains write semantics', () => {
@@ -198,7 +216,13 @@ describe('TRMNL node description', () => {
 		assert.equal(markup.noDataExpression, true);
 		assert.match(markup.description ?? '', /saved to TRMNL unchanged/);
 		assert.ok(dataNotice);
-		assert.match(dataNotice.displayName, /server-side Plugin Setting data/);
+		assert.match(dataNotice.displayName, /Plugin Settings and merge-variable schemas supported/);
+		assert.match(dataNotice.displayName, /successful response acknowledges the request/);
+		assert.match(dataNotice.displayName, /verify persistence with Get Data/);
+		assert.match(dataNotice.displayName, /Companion\/iPhone App provider/);
+		assert.match(dataNotice.displayName, /events array/);
+		assert.match(dataNotice.displayName, /Webhook Private Plugin/);
+		assert.match(dataNotice.displayName, /Private Plugin → Set\/Get Content/);
 		assert.match(dataNotice.displayName, /does not Force Refresh/);
 		assert.ok(markupNotice);
 		assert.match(markupNotice.displayName, /future TRMNL renders/);
@@ -227,19 +251,45 @@ describe('TRMNL node description', () => {
 		assert.ok(options && 'options' in options && options.options);
 		assert.deepEqual(
 			options.options.map((option) => option.name),
-			['payloadLimitBytes'],
+			['payloadLimit'],
 		);
+		const payloadLimit = options.options[0];
+		assert.equal(payloadLimit.type, 'options');
+		assert.equal(payloadLimit.default, 2048);
+		assert.deepEqual(
+			payloadLimit.options.map((option) => ({ name: option.name, value: option.value })),
+			[
+				{ name: 'Regular (2 KB)', value: 2048 },
+				{ name: 'TRMNL+ (5 KB)', value: 5120 },
+			],
+		);
+		assert.match(payloadLimit.description, /Validation happens locally/);
+		assert.match(payloadLimit.description, /does not change the server-side limit/);
 	});
 
 	it('offers native fields and JSON merge variable modes', () => {
-		const { properties } = new Trmnl().description;
-		const mode = properties.find((property) => property.name === 'mergeVariablesMode');
-		assert.ok(mode && 'options' in mode && mode.options);
-		assert.equal(mode.default, 'json');
+		const { properties, version } = new Trmnl().description;
+		const modes = properties.filter((property) => property.name === 'mergeVariablesMode');
+		assert.deepEqual(version, [1, 1.1, 1.2]);
+		assert.equal(modes.length, 3);
 		assert.deepEqual(
-			mode.options.map((option) => option.value),
-			['fields', 'json'],
+			modes.map((mode) => ({
+				default: mode.default,
+				version: mode.displayOptions?.show?.['@version'],
+			})),
+			[
+				{ default: 'json', version: [1] },
+				{ default: 'fields', version: [1.1] },
+				{ default: 'fields', version: [1.2] },
+			],
 		);
+		for (const mode of modes) {
+			assert.ok('options' in mode && mode.options);
+			assert.deepEqual(
+				mode.options.map((option) => option.value),
+				['fields', 'json'],
+			);
+		}
 
 		const assignments = properties.find((property) => property.name === 'mergeVariableAssignments');
 		assert.ok(assignments);
@@ -249,22 +299,60 @@ describe('TRMNL node description', () => {
 		const json = properties.find((property) => property.name === 'mergeVariables');
 		assert.ok(json);
 		assert.deepEqual(json.displayOptions?.hide?.mergeVariablesMode, ['fields']);
+		assert.equal(json.default, '');
+		assert.equal(json.placeholder, undefined);
 	});
 
-	it('keeps Liquid markup separate from n8n expressions', () => {
+	it('keeps Liquid markup literal and defaults new workflows to Input Data', () => {
 		const { properties } = new Trmnl().description;
 		const markup = properties.find((property) => property.name === 'markup');
+		const markupSource = properties.find((property) => property.name === 'markupSource');
+		const markupInputField = properties.find((property) => property.name === 'markupInputField');
+		const notice = properties.find((property) => property.name === 'markupRenderNotice');
 		assert.ok(markup);
 		assert.equal(markup.displayName, 'Liquid Markup');
 		assert.equal(markup.noDataExpression, true);
+		assert.deepEqual(markup.displayOptions?.hide?.markupSource, ['inputField']);
 		assert.match(markup.description ?? '', /sent to TRMNL unchanged/);
-
-		const variablesMode = properties.find((property) => property.name === 'variablesMode');
-		assert.ok(variablesMode && 'options' in variablesMode && variablesMode.options);
-		assert.equal(variablesMode.default, 'json');
+		assert.ok(markupSource && 'options' in markupSource && markupSource.options);
+		assert.equal(markupSource.default, 'defineBelow');
+		assert.deepEqual(markupSource.displayOptions?.show?.['@version'], [1.2]);
 		assert.deepEqual(
-			variablesMode.options.map((option) => option.value),
-			['fields', 'json'],
+			markupSource.options.map((option) => option.value),
+			['defineBelow', 'inputField'],
+		);
+		assert.ok(markupInputField);
+		assert.equal(markupInputField.default, 'markup');
+		assert.equal(markupInputField.noDataExpression, true);
+		assert.deepEqual(markupInputField.displayOptions?.show?.markupSource, ['inputField']);
+		assert.deepEqual(markupInputField.displayOptions?.show?.['@version'], [1.2]);
+		assert.ok(notice);
+		assert.match(notice.displayName, /public Render endpoint/);
+		assert.match(notice.displayName, /does not save markup/);
+		assert.match(notice.displayName, /refresh a device/);
+
+		const variablesModes = properties.filter((property) => property.name === 'variablesMode');
+		assert.deepEqual(
+			variablesModes.map((mode) => ({
+				displayName: mode.displayName,
+				default: mode.default,
+				version: mode.displayOptions?.show?.['@version'],
+				options: 'options' in mode ? mode.options?.map((option) => option.value) : undefined,
+			})),
+			[
+				{
+					displayName: 'Variables Source',
+					default: 'json',
+					version: [1, 1.1],
+					options: ['fields', 'json'],
+				},
+				{
+					displayName: 'Variables Source',
+					default: 'input',
+					version: [1.2],
+					options: ['input', 'fields', 'json'],
+				},
+			],
 		);
 
 		const assignments = properties.find((property) => property.name === 'variableAssignments');
@@ -274,7 +362,7 @@ describe('TRMNL node description', () => {
 
 		const variables = properties.find((property) => property.name === 'variables');
 		assert.ok(variables);
-		assert.deepEqual(variables.displayOptions?.hide?.variablesMode, ['fields']);
+		assert.deepEqual(variables.displayOptions?.hide?.variablesMode, ['fields', 'input']);
 		assert.match(variables.description ?? '', /n8n expressions are supported here/);
 	});
 });

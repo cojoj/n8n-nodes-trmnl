@@ -1,4 +1,4 @@
-name: Latest n8n Compatibility
+name: Latest n8n Runtime and Tooling Compatibility
 
 on:
   schedule:
@@ -9,13 +9,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: n8n-compatibility
+  group: n8n-runtime-tooling-compatibility
   cancel-in-progress: true
 
 jobs:
-  latest-node-cli:
+  latest-n8n:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -35,8 +35,17 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Update n8n tooling in the runner
-        run: pnpm update --latest @n8n/node-cli
+      - name: Update n8n runtime and tooling in the runner
+        run: pnpm update --latest n8n-workflow @n8n/node-cli
 
       - name: Test against the latest n8n tooling
         run: pnpm test
+
+      - name: Lint against the latest n8n tooling
+        run: pnpm lint
+
+      - name: Check n8n Cloud support
+        run: pnpm exec n8n-node cloud-support
+
+      - name: Audit high-severity dependencies
+        run: pnpm audit --audit-level high

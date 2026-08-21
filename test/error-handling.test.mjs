@@ -186,7 +186,7 @@ describe('TRMNL API error handling', () => {
 					markupSize: 'markup_custom',
 					pluginSettingMarkup: 'Synthetic markup',
 				},
-				message: /rejected this markup size/,
+				message: /could not process this markup operation/,
 			},
 		];
 
@@ -199,6 +199,38 @@ describe('TRMNL API error handling', () => {
 			assert.equal(error.httpCode, '422');
 			assert.match(error.message, testCase.message);
 		}
+	});
+
+	it('does not blame a documented markup size when only the write returns 422', async () => {
+		const markupParameters = {
+			resource: 'pluginSetting',
+			pluginSettingUuid: '00000000-0000-4000-8000-000000000001',
+			markupSize: 'markup_full',
+		};
+		const read = createErrorContext({
+			parameters: { ...markupParameters, operation: 'readMarkup' },
+			httpError: loadFixture('errors/422.json'),
+			httpResponse: '<div>Supported markup size</div>',
+			errorOnRequest: 2,
+		});
+		const readResult = await new Trmnl().execute.call(read.context);
+		const write = await captureApiError({
+			parameters: {
+				...markupParameters,
+				operation: 'writeMarkup',
+				pluginSettingMarkup: '<div>One attempted write</div>',
+			},
+			httpError: loadFixture('errors/422.json'),
+		});
+
+		assert.equal(read.requests.length, 1);
+		assert.equal(readResult[0][0].json.content, '<div>Supported markup size</div>');
+		assert.equal(write.requests.length, 1);
+		assert.equal(write.error.httpCode, '422');
+		assert.match(write.error.message, /could not process this markup operation/);
+		assert.doesNotMatch(write.error.message, /rejected this markup size|invalid size/i);
+		assert.doesNotMatch(write.error.message, /redacted upstream capability error/);
+		assert.doesNotMatch(write.error.message, /00000000-0000-4000-8000-000000000001/);
 	});
 
 	it('keeps Playlist Item writes single-attempt and paired under Continue On Fail', async () => {

@@ -12,6 +12,7 @@ function createWebhookContext({
 	params = {},
 	credentials = { headerName: 'X-TRMNL-Token', headerValue: 'expected-token' },
 	credentialError,
+	typeVersion = 1,
 } = {}) {
 	const response = {
 		statusCode: undefined,
@@ -31,6 +32,7 @@ function createWebhookContext({
 
 	return {
 		context: {
+			getNode: () => ({ typeVersion }),
 			getNodeParameter: (name, fallback) =>
 				Object.prototype.hasOwnProperty.call(parameters, name) ? parameters[name] : fallback,
 			getCredentials: async () => {
@@ -57,26 +59,47 @@ describe('TRMNL Trigger', () => {
 		const webhook = description.webhooks?.[0];
 
 		assert.ok(webhook);
+		assert.equal(description.usableAsTool, undefined);
 		assert.equal(webhook.httpMethod, '={{$parameter["httpMethod"]}}');
 		assert.equal(webhook.responseMode, 'lastNode');
 		assert.equal(webhook.responseCode, undefined);
 		assert.equal(webhook.responseData, 'firstEntryJson');
 	});
 
-	it('documents current hosted Polling Header syntax and synchronous production requirements', () => {
-		const properties = new TrmnlTrigger().description.properties;
-		const headerNotice = properties.find(
-			(property) => property.name === 'pollingHeaderFormatNotice',
-		);
-		const setupNotice = properties.find((property) => property.name === 'pollingSetupNotice');
-		const synchronousNotice = properties.find(
-			(property) => property.name === 'synchronousPollingNotice',
+	it('light-versions Polling authentication without changing saved v1 defaults', () => {
+		const { version, properties } = new TrmnlTrigger().description;
+		const authenticationProperties = properties.filter(
+			(property) => property.name === 'authentication',
 		);
 
-		assert.match(headerNotice?.displayName ?? '', /Name: Value \(or name=value\)/);
+		assert.deepEqual(version, [1, 1.1]);
+		assert.equal(authenticationProperties.length, 2);
+		assert.deepEqual(
+			authenticationProperties.map((property) => ({
+				default: property.default,
+				version: property.displayOptions?.show?.['@version'],
+			})),
+			[
+				{ default: 'none', version: [1] },
+				{ default: 'headerAuth', version: [1.1] },
+			],
+		);
+	});
+
+	it('keeps Polling guidance concise while documenting production requirements', () => {
+		const properties = new TrmnlTrigger().description.properties;
+		const authenticationProperties = properties.filter(
+			(property) => property.name === 'authentication',
+		);
+		const setupNotice = properties.find((property) => property.name === 'pollingSetupNotice');
+
+		assert.equal(properties.filter((property) => property.type === 'notice').length, 1);
+		for (const authenticationProperty of authenticationProperties) {
+			assert.match(authenticationProperty.description ?? '', /Name: Value/);
+		}
 		assert.match(setupNotice?.displayName ?? '', /active and publicly reachable over HTTPS/);
-		assert.match(synchronousNotice?.displayName ?? '', /Keep the path fast/);
-		assert.doesNotMatch(synchronousNotice?.displayName ?? '', /\d+ ?(ms|seconds?)/i);
+		assert.match(setupNotice?.displayName ?? '', /final node's first root JSON object/);
+		assert.doesNotMatch(setupNotice?.displayName ?? '', /\d+ ?(ms|seconds?)/i);
 	});
 
 	it('uses no-op webhook lifecycle hooks because TRMNL URLs are configured manually', async () => {
@@ -165,6 +188,34 @@ describe('TRMNL Trigger', () => {
 			assert.equal(result.workflowData[0][0].json.requestMethod, httpMethod);
 			assert.equal(response.ended, false);
 		}
+	});
+
+	it('uses versioned authentication defaults while preserving an explicit None opt-out', async () => {
+		const savedV1 = createWebhookContext({
+			parameters: { httpMethod: 'GET' },
+			typeVersion: 1,
+		});
+		const newV11WithoutHeader = createWebhookContext({
+			parameters: { httpMethod: 'GET' },
+			typeVersion: 1.1,
+		});
+		const newV11WithHeader = createWebhookContext({
+			parameters: { httpMethod: 'GET' },
+			headers: { 'x-trmnl-token': 'expected-token' },
+			typeVersion: 1.1,
+		});
+		const explicitNone = createWebhookContext({
+			parameters: { httpMethod: 'GET', authentication: 'none' },
+			typeVersion: 1.1,
+		});
+
+		assert.ok((await new TrmnlTrigger().webhook.call(savedV1.context)).workflowData);
+		assert.deepEqual(await new TrmnlTrigger().webhook.call(newV11WithoutHeader.context), {
+			noWebhookResponse: true,
+		});
+		assert.equal(newV11WithoutHeader.response.statusCode, 401);
+		assert.ok((await new TrmnlTrigger().webhook.call(newV11WithHeader.context)).workflowData);
+		assert.ok((await new TrmnlTrigger().webhook.call(explicitNone.context)).workflowData);
 	});
 
 	it('rejects missing, malformed, or wrong Header Auth without starting the workflow', async () => {

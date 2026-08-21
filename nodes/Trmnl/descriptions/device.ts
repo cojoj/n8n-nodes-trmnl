@@ -106,7 +106,7 @@ export const deviceProperties: INodeProperties[] = [
 		name: 'deviceReadOnlyNotice',
 		type: 'notice',
 		default: '',
-			displayOptions: {
+		displayOptions: {
 			show: {
 				resource: ['device'],
 				operation: ['get', 'list'],

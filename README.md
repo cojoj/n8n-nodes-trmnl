@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="nodes/Trmnl/trmnl.dark.svg">
-    <img src="nodes/Trmnl/trmnl.svg" width="88" height="88" alt="TRMNL glyph">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cojoj/n8n-nodes-trmnl/main/nodes/Trmnl/trmnl.dark.svg">
+    <img src="https://raw.githubusercontent.com/cojoj/n8n-nodes-trmnl/main/nodes/Trmnl/trmnl.svg" width="88" height="88" alt="TRMNL glyph">
   </picture>
 </p>
 
@@ -13,195 +13,121 @@
 
 <p align="center">
   <a href="https://github.com/cojoj/n8n-nodes-trmnl/actions/workflows/ci.yml"><img src="https://github.com/cojoj/n8n-nodes-trmnl/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-171717" alt="MIT license"></a>
+  <a href="https://github.com/cojoj/n8n-nodes-trmnl/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-171717" alt="MIT license"></a>
 </p>
 
-This is an independent n8n community node for sending data to and serving data from [TRMNL](https://trmnl.com/) Private Plugins.
+This n8n community package sends workflow data to TRMNL. It also supplies
+Polling responses and manages the Account API resources in the table below. A
+TRMNL device gets new content during a refresh or check-in. It does not get a
+push at that time.
 
-TRMNL devices are pull-based: n8n sends data to TRMNL, TRMNL renders the screen, and the device shows it on the next refresh. This node does not push directly to the hardware.
+## Install
 
-## Project Status
-
-This project is in pre-1.0 release-candidate hardening. The shipped v0.5.0 surface includes Private Plugin Webhook and Polling flows, Markup Render, Device discovery and sleep controls, Playlist Item visibility, and Plugin Setting data and markup operations. The original core loop was validated with a real TRMNL Private Plugin and physical TRMNL device:
+On a self-hosted n8n instance, open **Settings → Community Nodes**. Select
+**Install**. Type this package name:
 
 ```text
-n8n workflow -> TRMNL node -> Private Plugin webhook -> TRMNL render -> device refresh
+n8n-nodes-trmnl
 ```
 
-Polling is the inverse flow: TRMNL calls an active n8n workflow and the workflow supplies the screen data. This path has been validated against hosted TRMNL through the rendered markup preview.
+The n8n [community node installation guide](https://docs.n8n.io/integrations/community-nodes/installation/)
+gives instance requirements and other installation methods. After the
+installation, search for **TRMNL** or **TRMNL Trigger** in the node picker.
 
-The Account API surface provides Device discovery and sleep controls, Playlist Item visibility automation, plus Plugin Setting reads, server-side data updates, and markup management. The Plugin Setting operations were exercised through local n8n against hosted TRMNL on 2026-08-08 with redacted evidence, including a disposable Plugin Setting, rendered markup preview, and exact source restoration. Playlist visibility and Device sleep controls passed separate local-n8n, hosted Account API, signed-in portal, and exact-restoration acceptance on 2026-08-09. See [docs/manual-test-matrix.md](docs/manual-test-matrix.md) for the separate n8n, hosted-state, portal, restoration, and physical-device evidence boundaries.
+## Nodes and Operations
 
-The remaining 1.0 readiness gap is evidence, not additional product surface: install a packaged release candidate into a clean supported n8n/Node environment, import and exercise both supplied workflows, complete the currently open MT-01 through MT-11 checks against a disposable Webhook Private Plugin, include the physical-device observation required by MT-11, and verify cleanup. Async Polling, Force Refresh, Display API operations, image upload, and plugin lifecycle operations are not 1.0 requirements.
+<!-- prettier-ignore -->
+| Node | Resource | Operations |
+| --- | --- | --- |
+| TRMNL | Private Plugin | Set Content, Get Content |
+| TRMNL | Markup | Render |
+| TRMNL | Device | List, Get, Update Sleep Mode |
+| TRMNL | Playlist Item | List, Set Visibility |
+| TRMNL | Plugin Setting | List, Get Details, Get Data, Update Data, Read Markup, Write Markup |
+| TRMNL Trigger | Polling | GET or POST, with optional Header Auth |
 
-The node uses TRMNL's official glyphs from its [Brand Assets](https://trmnl.com/brand) page. See [docs/brand-assets.md](docs/brand-assets.md) for provenance. This is an independent community project; TRMNL and n8n are trademarks of their respective owners.
-
-## Installation
-
-Follow n8n's [community node installation guide](https://docs.n8n.io/integrations/community-nodes/installation/).
-
-For local development:
-
-```bash
-pnpm install
-pnpm dev
-```
-
-Then open n8n at `http://localhost:5678`.
-
-If your browser rejects local cookies during development, run:
-
-```bash
-N8N_SECURE_COOKIE=false pnpm dev
-```
-
-## Quick Start
-
-1. In TRMNL, create a **Private Plugin**.
-2. Set **Strategy** to **Webhook**.
-3. Save the plugin, then copy its **Webhook URL** or **Plugin UUID**.
-4. In n8n, create a **TRMNL Private Plugin API** credential.
-5. Add a **TRMNL** node to a workflow.
-6. Choose **Private Plugin** -> **Set Content**.
-7. Define **Merge Variables** using fields below or a JSON object.
-8. Execute the node.
-
-See [docs/getting-started.md](docs/getting-started.md) for the full walkthrough.
-
-## Operations
-
-### TRMNL Trigger
-
-- **Polling Request**: exposes a production webhook URL and returns the first JSON item from the workflow's last node with HTTP 200.
-
-The trigger supports GET or POST and optional **TRMNL Polling Header Auth API** credentials. In TRMNL's current Polling Headers field, enter the same pair on one line as `Name: Value` (or `name=value`). Incoming headers are intentionally not copied into workflow output.
-
-Use the active production webhook URL, not the test URL. It must be publicly reachable over HTTPS, and the workflow should remain fast because Polling waits synchronously for the final node. Matching Header Auth starts one execution and returns its first root JSON object. A missing, malformed, or wrong header receives HTTP 401 before an execution starts.
-
-### Device
-
-- **List**: Lists devices in the authenticated TRMNL account.
-- **Get**: Gets one device by the numeric ID returned by List.
-- **Update Sleep Mode**: Patches only the documented sleep-enabled setting and, when enabled, start/end minute-of-day values (`0` through `1439`). Sleep times are hidden when sleep mode is disabled and are omitted from that request.
-
-List and Get return TRMNL's documented device data for discovery and administration. Update Sleep Mode changes the account-side sleep schedule but intentionally does not expose `percent_charged` or any other telemetry-looking field as writable. Device operations do not use the Device Display API, fetch screen images, advance playlists, push content, or Force Refresh physical hardware.
-
-### Playlist Item
-
-- **List**: calls `GET /api/playlists/items` and returns one n8n item per playlist item when TRMNL supplies a `data` array, preserving every returned field.
-- **Set Visibility**: patches exactly one positive numeric playlist-item ID with `{ "visible": <boolean> }` and returns the target ID, requested visibility, and normalized TRMNL response.
-
-Visibility controls whether an item is eligible for future screen selection. It does not directly push content or refresh physical hardware. The node does not assume undocumented pagination, ordering, grouping, filtering, or scheduling and does not expose reorder, duration, move, create, delete, or arbitrary playlist mutation.
-
-### Plugin Setting
-
-- **List**: calls `GET /api/plugin_settings` and returns one n8n item per setting when TRMNL supplies a `data` array. The optional **Plugin ID** filter accepts a numeric plugin ID or the documented `calendars` value.
-- **Get Details**: gets one setting by its Plugin Setting UUID and preserves the fields TRMNL returns, including available markup sizes when supplied.
-- **Get Data**: gets the current data for a setting by numeric ID or UUID without imposing a fixed schema on the returned object.
-- **Read Markup**: gets the exact saved Liquid markup for a Plugin Setting UUID and size. **Markup Size** is an expression-friendly string with `markup_full` as the default; use a size returned by Get Details when available.
-- **Update Data**: posts exactly one JSON-object `merge_variables` payload by numeric ID or UUID. Choose native typed fields or JSON input.
-- **Write Markup**: saves literal Liquid markup for a Plugin Setting UUID and size. The markup field does not evaluate n8n expressions, so `{{ ... }}` and `{% ... %}` remain unchanged.
-
-List, Get Details, Get Data, and Read Markup are read-only. Update Data mutates hosted Plugin Setting data, while Write Markup changes the template used on future TRMNL renders. Neither write operation is Force Refresh or proof of an immediate physical-device update. Identifiers and markup sizes use normal string fields so expressions can pass them between workflow steps; a dynamic selector is intentionally deferred until live responses reliably connect the required identifiers and available sizes.
-
-In the 2026-08-08 hosted acceptance target, List supplied numeric setting and plugin IDs but no Plugin Setting UUID. Get Details accepted a known UUID but did not return that target UUID or an available-markup-size list. These observations are account/setting specific, so the node preserves future response fields without turning them into a fixed selector contract.
-
-### Private Plugin
-
-- **Set Content**: Sends a JSON `merge_variables` object to a TRMNL Private Plugin webhook.
-- **Get Content**: Reads the current merge variables from the same webhook endpoint.
-
-`Set Content` accepts full webhook URLs or Plugin Setting UUIDs. UUIDs are normalized to `https://trmnl.com/api/custom_plugins/{uuid}`.
-
-Choose **Using Fields Below** for n8n's native name/value editor with typed values and expressions. Choose **Using JSON** for nested objects, arrays, or pasting a complete payload.
-
-`Set Content` supports TRMNL's webhook merge strategies:
-
-- **Replace**: Replace the stored merge variables.
-- **Deep Merge**: Merge nested object values into the current state.
-- **Stream**: Append incoming top-level array values and cap retained entries with **Stream Limit**.
-
-When using Stream, send every top-level key that the plugin should retain. Hosted TRMNL can remove stored keys omitted from a Stream update.
-
-The node validates payload size locally before sending. The default limit is 2 KB; TRMNL+ users can raise the node's payload limit to 5 KB.
-
-TRMNL currently documents up to 12 Private Plugin webhook requests per hour, or 30 per hour for TRMNL+ subscribers. Faster requests receive HTTP 429. The node preserves that status and any `Retry-After` response value, but it does not maintain a client-side quota counter or retry automatically.
-
-### Markup
-
-- **Render**: Renders Liquid markup with variables using TRMNL's markup endpoint.
-
-The **Liquid Markup** field is always sent to TRMNL unchanged, so Liquid tags such as `{{ title }}` are not interpreted as n8n expressions. Define dynamic data in **Variables** using n8n's fields editor or a JSON object, then reference those names from the Liquid markup.
-
-When TRMNL returns its rendered result in `data`, the node exposes that value as top-level `rendered` for convenient downstream use. The complete TRMNL response remains available under `response`.
-
-## Example
-
-The repository includes a verified Webhook dashboard and Polling workflow examples:
-
-- [examples/private-plugin-dashboard/markup-full.liquid](examples/private-plugin-dashboard/markup-full.liquid)
-- [examples/private-plugin-dashboard/payload.json](examples/private-plugin-dashboard/payload.json)
-- [examples/private-plugin-dashboard/workflow.json](examples/private-plugin-dashboard/workflow.json)
-- [examples/private-plugin-dashboard/README.md](examples/private-plugin-dashboard/README.md)
-- [examples/private-plugin-polling/README.md](examples/private-plugin-polling/README.md)
-
-Use this as the first smoke test after installing the node.
+Action operations do not have automatic retries. Use **Retry On Fail** only for
+temporary read errors or Markup Render. Before you use it for a write operation,
+examine the possible side effects.
 
 ## Credentials
 
-### TRMNL Private Plugin API
+- **TRMNL Private Plugin API** stores a saved Private Plugin Webhook URL or its
+  Plugin Setting UUID. Use it for Private Plugin Set/Get Content.
+- **TRMNL Account API** stores a `user_` Account API key. TRMNL requires a
+  developer license for this API. Use it for Device, Playlist Item, and
+  compatible Plugin Setting operations. Use Private Plugin Set/Get Content for
+  a Webhook Private Plugin. Do not use Account API Update/Get Data for it.
+- **TRMNL Polling Header Auth API** stores the custom header name and value used
+  to authenticate incoming Polling requests. Configure the same pair in TRMNL.
 
-Use the Webhook URL from a saved Private Plugin, or paste only the Plugin Setting UUID. The credential test performs a read-only `GET` against the Webhook endpoint.
+Each credential has a different trust boundary. Do not use a credential for a
+different trust boundary. Use Polling without authentication only when you
+intentionally make it public.
 
-TRMNL's webhook docs: https://docs.trmnl.com/go/private-plugins/webhooks
+## Quick Start: Webhook Content
 
-### TRMNL Polling Header Auth API
+1. In TRMNL, create a Private Plugin with the **Webhook** strategy.
+2. Create a **TRMNL Private Plugin API** credential in n8n.
+3. Add a TRMNL node. Select **Private Plugin** and **Set Content**. Select
+   the credential.
+4. Add merge variables with **Using Fields Below**, or use **Using JSON** for
+   nested objects and arrays.
+5. Execute the node. Use those variable names in the Private Plugin Liquid
+   markup.
+6. Make sure that TRMNL contains the data and shows the preview. For a device
+   check, wait for the next refresh.
 
-Stores the header name and secret value used to authenticate incoming Polling requests. Put the same pair in the Private Plugin's Polling Headers. Because TRMNL initiates this request, credential testing validates the local configuration; the live request is proven only when TRMNL calls an active, public HTTPS workflow.
+## Polling
 
-### TRMNL Account API
+Add a **TRMNL Trigger**. Connect it to a workflow that returns one root JSON
+object. Activate the workflow. Copy the production URL to the Private Plugin
+Polling URL.
 
-Stores a `user_` TRMNL Account API key for authenticated API features. TRMNL requires a developer license for this API. Use it with all **Device**, **Playlist Item**, and **Plugin Setting** operations. Device Update Sleep Mode, Playlist Item Set Visibility, Plugin Setting Update Data, and Write Markup modify hosted state; the other Account API operations are read-only.
+The production webhook must be public through HTTPS. The HTTP verb must be the
+same in TRMNL and n8n. The workflow must send the response quickly because the
+operation is synchronous.
 
-The Device Display API/BYOD endpoints (`/api/display`, `/api/current_screen`, and other screen-image retrieval routes) use a different credential boundary and remain out of scope. Private Plugin webhooks remain the simplest webhook content-update path, while Account API Update Data and Write Markup target an existing Plugin Setting. Device refresh remains pull/check-in based.
+Use Header Auth. Type the same pair in TRMNL Polling Headers as `Name: Value` or
+`name=value`. Incorrect credentials return HTTP 401 before the workflow starts.
+The workflow data does not contain the incoming headers.
 
-See the [Account API roadmap](docs/account-api-roadmap.md) for the focused implemented slices and deferred safety boundaries.
+## Compatibility
 
-TRMNL account API docs: https://docs.trmnl.com/go/private-api/account
+Existing node names, credential names, parameters, versions, and saved-workflow
+behavior are compatibility contracts. CI tests Node.js 22 and the current LTS.
+A scheduled workflow checks the latest n8n runtime and tools.
 
-## API Errors and Retry On Fail
+Automated checks do not prove hosted TRMNL or physical-device behavior. Use the
+[manual test matrix](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/manual-test-matrix.md)
+for live validation.
 
-External TRMNL failures are reported as n8n API errors with the HTTP status preserved when one exists. Messages identify the credential boundary and safe operation context without echoing credentials, webhook URLs, Plugin Setting identifiers, request headers, or raw upstream bodies. Documented Plugin Setting capability failures receive specific 422 messages, and 429 errors include `Retry-After` guidance when TRMNL supplies it.
+## Development
 
-No action or trigger request is retried automatically. For transient reads and Markup Render, enable n8n's **Retry On Fail** deliberately when repeating the request is appropriate. Review write side effects before enabling it for Set Content, Set Visibility, Update Sleep Mode, Update Data, or Write Markup. n8n cannot know the account's exact remaining TRMNL quota.
-
-## Development Checks
+Use the Node.js LTS release and pnpm version declared by the repository:
 
 ```bash
+corepack enable
+pnpm install --frozen-lockfile
 pnpm test
 pnpm lint
+pnpm format:check
 pnpm pack --dry-run
 pnpm exec n8n-node cloud-support
 ```
 
-This project keeps n8n strict mode enabled for community-node compatibility.
+Run `pnpm dev` for local n8n editor validation. Do not commit generated `dist/`
+output. Do not change the package version. Only a stable GitHub Release starts
+publication. Refer to the
+[maintainer release process](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/releasing.md).
 
-Use [docs/manual-test-matrix.md](docs/manual-test-matrix.md) for live release-candidate checks across n8n, the Private Plugin webhook, TRMNL Activity/preview, and a physical device.
+## Project Links
 
-## Device Refresh Behavior
+- [Architecture](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/architecture.md)
+- [Contributing](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/CONTRIBUTING.md)
+- [Security policy](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/SECURITY.md)
+- [Manual test matrix](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/manual-test-matrix.md)
+- [TRMNL API documentation](https://docs.trmnl.com/go)
+- [n8n community-node documentation](https://docs.n8n.io/integrations/community-nodes/)
 
-The webhook updates TRMNL's server-side data. The physical device updates when it checks in and asks TRMNL for content.
-
-For development, use **Force Refresh** on the TRMNL plugin settings page, then wait for the device's next check-in or use the device controls according to TRMNL's refresh behavior.
-
-## Resources
-
-- [Contributing guide](CONTRIBUTING.md)
-- [Security policy](SECURITY.md)
-- [TRMNL API docs](https://docs.trmnl.com/go)
-- [TRMNL Private Plugin webhook docs](https://docs.trmnl.com/go/private-plugins/create-a-screen)
-- [TRMNL refresh behavior](https://help.trmnl.com/en/articles/10113695-how-refresh-rates-work)
-- [TRMNL OpenAPI spec](https://trmnl.com/api-docs/openapi.yaml)
-- [n8n creating nodes docs](https://docs.n8n.io/integrations/creating-nodes/overview/)
-- [n8n community nodes docs](https://docs.n8n.io/integrations/community-nodes/)
-- [Maintainer release process](docs/releasing.md)
+TRMNL and n8n own their trademarks. They do not endorse this project.

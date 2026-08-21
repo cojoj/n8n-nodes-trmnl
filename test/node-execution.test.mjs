@@ -1,15 +1,20 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { TrmnlPrivatePluginApi } from '../dist/credentials/TrmnlPrivatePluginApi.credentials.js';
 import { Trmnl } from '../dist/nodes/Trmnl/Trmnl.node.js';
 import { loadFixture } from './helpers/load-fixture.mjs';
 
 function createExecuteContext({
 	parameters,
+	parametersByItem,
 	credentials = {
 		trmnlPrivatePluginApi: { webhookUrlOrUuid: 'test-plugin-uuid' },
 		trmnlAccountApi: { apiKey: 'user_test' },
 	},
+	credentialsByItem,
+	inputItems = [{ json: {} }],
+	typeVersion = 1,
 	httpResponse = { accepted: true },
 	httpError,
 	continueOnFail = false,
@@ -19,7 +24,7 @@ function createExecuteContext({
 		id: 'trmnl-test-node',
 		name: 'TRMNL',
 		type: 'n8n-nodes-trmnl.trmnl',
-		typeVersion: 1,
+		typeVersion,
 		position: [0, 0],
 		parameters,
 	};
@@ -33,18 +38,41 @@ function createExecuteContext({
 
 		return httpResponse;
 	};
+	const privatePluginCredential = new TrmnlPrivatePluginApi();
 
 	return {
 		context: {
-			getInputData: () => [{ json: {} }],
-			getNodeParameter: (name, _itemIndex, fallback) =>
-				Object.prototype.hasOwnProperty.call(parameters, name) ? parameters[name] : fallback,
+			getInputData: () => inputItems,
+			getNodeParameter: (name, itemIndex, fallback) => {
+				const itemParameters = parametersByItem?.[itemIndex] ?? parameters;
+
+				return Object.prototype.hasOwnProperty.call(itemParameters, name)
+					? itemParameters[name]
+					: fallback;
+			},
 			getNode: () => node,
-			getCredentials: async (credentialType) => credentials[credentialType],
+			getCredentials: async (credentialType, itemIndex) =>
+				credentialsByItem?.[itemIndex]?.[credentialType] ?? credentials[credentialType],
 			continueOnFail: () => continueOnFail,
 			helpers: {
-				httpRequestWithAuthentication: async (authentication, options) =>
-					request(authentication, options),
+				httpRequestWithAuthentication: async (
+					authentication,
+					options,
+					additionalCredentialOptions,
+				) => {
+					if (authentication !== 'trmnlPrivatePluginApi') {
+						return await request(authentication, options);
+					}
+
+					const credentialData =
+						additionalCredentialOptions?.credentialsDecrypted?.data ?? credentials[authentication];
+					const authenticatedOptions = await privatePluginCredential.authenticate(
+						credentialData,
+						options,
+					);
+
+					return await request(authentication, authenticatedOptions);
+				},
 				httpRequest: async (options) => request(undefined, options),
 			},
 		},
@@ -661,6 +689,98 @@ describe('TRMNL node execution', () => {
 			deviceUpdate: 'next_refresh',
 			response: httpResponse,
 		});
+		assert.deepEqual(result[0][0].pairedItem, { item: 0 });
+	});
+
+	it('keeps omitted merge-variable mode as JSON for saved v1 workflows', async () => {
+		const parameters = setContentParameters();
+		delete parameters.mergeVariablesMode;
+		const { requests } = await executeWith({ parameters });
+
+		assert.equal(requests.length, 1);
+		assert.deepEqual(requests[0].options.body, {
+			merge_variables: { title: 'Hello' },
+		});
+	});
+
+	it('keeps item-specific parameters, credentials, requests, and pairing across inputs', async () => {
+		const parametersByItem = [
+			setContentParameters({ mergeVariables: '{"title":"First"}' }),
+			setContentParameters({ mergeVariables: '{"title":"Second"}' }),
+		];
+		const { result, requests } = await executeWith({
+			parameters: parametersByItem[0],
+			parametersByItem,
+			credentialsByItem: [
+				{ trmnlPrivatePluginApi: { webhookUrlOrUuid: 'first-plugin-uuid' } },
+				{ trmnlPrivatePluginApi: { webhookUrlOrUuid: 'second-plugin-uuid' } },
+			],
+			inputItems: [{ json: { source: 'first' } }, { json: { source: 'second' } }],
+		});
+
+		assert.deepEqual(
+			requests.map(({ options }) => ({ url: options.url, body: options.body })),
+			[
+				{
+					url: 'https://trmnl.com/api/custom_plugins/first-plugin-uuid',
+					body: { merge_variables: { title: 'First' } },
+				},
+				{
+					url: 'https://trmnl.com/api/custom_plugins/second-plugin-uuid',
+					body: { merge_variables: { title: 'Second' } },
+				},
+			],
+		);
+		assert.deepEqual(
+			result[0].map((item) => item.pairedItem),
+			[{ item: 0 }, { item: 1 }],
+		);
+		assert.deepEqual(
+			result[0].map((item) => item.json.mergeVariables),
+			[{ title: 'First' }, { title: 'Second' }],
+		);
+	});
+
+	it('keeps item-specific Private Plugin credentials for Get Content', async () => {
+		const { result, requests } = await executeWith({
+			parameters: { resource: 'privatePlugin', operation: 'getContent' },
+			credentialsByItem: [
+				{ trmnlPrivatePluginApi: { webhookUrlOrUuid: 'first-plugin-uuid' } },
+				{ trmnlPrivatePluginApi: { webhookUrlOrUuid: 'second-plugin-uuid' } },
+			],
+			inputItems: [{ json: { source: 'first' } }, { json: { source: 'second' } }],
+		});
+
+		assert.deepEqual(
+			requests.map(({ options }) => options.url),
+			[
+				'https://trmnl.com/api/custom_plugins/first-plugin-uuid',
+				'https://trmnl.com/api/custom_plugins/second-plugin-uuid',
+			],
+		);
+		assert.deepEqual(
+			result[0].map((item) => item.pairedItem),
+			[{ item: 0 }, { item: 1 }],
+		);
+	});
+
+	it('rejects an unsupported Private Plugin endpoint before HTTP without exposing its token', async () => {
+		const syntheticSecret = 'synthetic-secret_token-123';
+		const { context, requests } = createExecuteContext({
+			parameters: setContentParameters(),
+			credentials: {
+				trmnlPrivatePluginApi: {
+					webhookUrlOrUuid: `https://example.com/api/custom_plugins/${syntheticSecret}`,
+				},
+			},
+		});
+
+		await assert.rejects(new Trmnl().execute.call(context), (error) => {
+			assert.match(error.message, /documented TRMNL origin/);
+			assert.equal(error.message.includes(syntheticSecret), false);
+			return true;
+		});
+		assert.equal(requests.length, 0);
 	});
 
 	it('gets current Private Plugin content from the webhook endpoint', async () => {
@@ -685,6 +805,7 @@ describe('TRMNL node execution', () => {
 			success: true,
 			response: httpResponse,
 		});
+		assert.deepEqual(result[0][0].pairedItem, { item: 0 });
 	});
 
 	it('renders Liquid markup without Private Plugin credentials', async () => {
@@ -722,6 +843,106 @@ describe('TRMNL node execution', () => {
 			rendered: 'Hello, Fixture!',
 			response: httpResponse,
 		});
+	});
+
+	it('uses each input item as the default Liquid variables for v1.2', async () => {
+		const inputItems = [
+			{ json: { greeting: 'Hello', name: 'Ada' } },
+			{ json: { greeting: 'Cześć', name: 'Jan' } },
+		];
+		const { result, requests } = await executeWith({
+			typeVersion: 1.2,
+			parameters: {
+				resource: 'markup',
+				operation: 'render',
+				markup: '{{ greeting }}, {{ name }}!',
+			},
+			inputItems,
+			httpResponse: { data: 'Rendered' },
+		});
+
+		assert.deepEqual(
+			requests.map((request) => request.options.body),
+			inputItems.map((item) => ({
+				markup: '{{ greeting }}, {{ name }}!',
+				variables: item.json,
+			})),
+		);
+		assert.deepEqual(
+			result[0].map((item) => ({ variables: item.json.variables, pairedItem: item.pairedItem })),
+			[
+				{ variables: inputItems[0].json, pairedItem: { item: 0 } },
+				{ variables: inputItems[1].json, pairedItem: { item: 1 } },
+			],
+		);
+	});
+
+	it('reads each v1.2 Liquid template from its paired input field', async () => {
+		const inputItems = [
+			{ json: { markup: 'Hello, {{ name }}!', name: 'Ada' } },
+			{ json: { markup: 'Cześć, {{ name }}!', name: 'Jan' } },
+		];
+		const { result, requests } = await executeWith({
+			typeVersion: 1.2,
+			parameters: {
+				resource: 'markup',
+				operation: 'render',
+				markupSource: 'inputField',
+				markupInputField: 'markup',
+			},
+			inputItems,
+			httpResponse: { data: 'Rendered' },
+		});
+
+		assert.deepEqual(
+			requests.map((request) => request.options.body),
+			inputItems.map((item) => ({
+				markup: item.json.markup,
+				variables: item.json,
+			})),
+		);
+		assert.deepEqual(
+			result[0].map((item) => item.pairedItem),
+			[{ item: 0 }, { item: 1 }],
+		);
+	});
+
+	it('rejects a missing or non-string Markup input field before HTTP', async () => {
+		for (const inputItems of [[{ json: {} }], [{ json: { markup: { template: 'invalid' } } }]]) {
+			const { context, requests } = createExecuteContext({
+				typeVersion: 1.2,
+				parameters: {
+					resource: 'markup',
+					operation: 'render',
+					markupSource: 'inputField',
+					markupInputField: 'markup',
+				},
+				inputItems,
+			});
+
+			await assert.rejects(new Trmnl().execute.call(context), /Markup input field/);
+			assert.equal(requests.length, 0);
+		}
+	});
+
+	it('keeps omitted Markup variablesMode on v1 and v1.1 using saved JSON variables', async () => {
+		for (const typeVersion of [1, 1.1]) {
+			const { requests } = await executeWith({
+				typeVersion,
+				parameters: {
+					resource: 'markup',
+					operation: 'render',
+					markup: 'Hello, {{ name }}!',
+					variables: '{"name":"Legacy"}',
+				},
+				inputItems: [{ json: { name: 'Input must not replace saved JSON' } }],
+			});
+
+			assert.deepEqual(requests[0].options.body, {
+				markup: 'Hello, {{ name }}!',
+				variables: { name: 'Legacy' },
+			});
+		}
 	});
 
 	it('preserves the raw Markup response when surfacing an empty rendered value', async () => {
@@ -812,6 +1033,54 @@ describe('TRMNL node execution', () => {
 		assert.equal(requests.length, 0);
 	});
 
+	it('rejects invalid payload limits before making a request', async () => {
+		for (const payloadLimitBytes of [
+			0,
+			-1,
+			1.5,
+			Number.NaN,
+			Number.POSITIVE_INFINITY,
+			Number.MAX_SAFE_INTEGER + 1,
+			'not-a-number',
+		]) {
+			const { context, requests } = createExecuteContext({
+				parameters: setContentParameters({ options: { payloadLimitBytes } }),
+			});
+
+			await assert.rejects(
+				new Trmnl().execute.call(context),
+				/Payload Limit Bytes must be a positive safe integer/,
+			);
+			assert.equal(requests.length, 0);
+		}
+	});
+
+	it('accepts a payload above the Regular limit when TRMNL+ is selected', async () => {
+		const { result, requests } = await executeWith({
+			parameters: setContentParameters({
+				mergeVariables: JSON.stringify({ blob: 'x'.repeat(2100) }),
+				options: { payloadLimit: 5120 },
+			}),
+		});
+
+		assert.equal(requests.length, 1);
+		assert.equal(result[0][0].json.payloadLimitBytes, 5120);
+		assert.ok(result[0][0].json.payloadSizeBytes > 2048);
+		assert.ok(result[0][0].json.payloadSizeBytes < 5120);
+	});
+
+	it('rejects a payload limit outside the supported plan choices', async () => {
+		const { context, requests } = createExecuteContext({
+			parameters: setContentParameters({ options: { payloadLimit: 4096 } }),
+		});
+
+		await assert.rejects(
+			new Trmnl().execute.call(context),
+			/Payload Limit must be Regular \(2 KB\) or TRMNL\+ \(5 KB\)/,
+		);
+		assert.equal(requests.length, 0);
+	});
+
 	it('rejects an oversized payload before making a request', async () => {
 		const { context, requests } = createExecuteContext({
 			parameters: setContentParameters({
@@ -826,5 +1095,4 @@ describe('TRMNL node execution', () => {
 		);
 		assert.equal(requests.length, 0);
 	});
-
 });

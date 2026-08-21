@@ -1,16 +1,16 @@
 # Test Fixtures
 
-These fixtures are synthetic, redacted examples of the response and request shapes used by
-the TRMNL node tests. They must not contain real API keys, plugin UUIDs, device identifiers,
-webhook headers, or account data.
+These fixtures contain synthetic request and response data for the TRMNL node
+tests. They must not contain API keys, production plugin UUIDs, device IDs,
+Webhook headers, or account data.
 
-When an API contract changes, update the smallest relevant fixture and keep assertions for
-the request sent by the node separate from assertions for the response it returns.
+When an API contract changes, update the smallest applicable fixture. Keep
+request assertions and response assertions in different tests.
 
-Plugin Setting, Playlist Item, and Device sleep fixtures use synthetic identifiers, settings,
-and harmless Liquid snippets only. Live backup content, original account settings, and acceptance
-markers must remain outside the repository.
+Plugin Setting, Playlist Item, and Device sleep fixtures use only synthetic IDs,
+settings, and safe Liquid text. Keep backup content, production account settings,
+and acceptance markers out of the repository.
 
-`errors/` contains fully redacted representative HTTP and network failures. Tests may add an
-in-memory sentinel secret to prove that raw upstream errors never reach node errors or Continue
-On Fail output.
+`errors/` contains synthetic HTTP and network failures. Tests can add a
+temporary secret in memory. Node errors and Continue On Fail output must not
+contain raw errors.

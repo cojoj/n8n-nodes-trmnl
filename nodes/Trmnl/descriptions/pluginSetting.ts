@@ -39,7 +39,7 @@ export const pluginSettingProperties: INodeProperties[] = [
 			{
 				name: 'Update Data',
 				value: 'updateData',
-				description: 'Update server-side data for a Plugin Setting',
+				description: 'Submit Account API data to a supported Plugin Setting',
 				action: 'Update plugin setting data',
 			},
 			{
@@ -159,7 +159,8 @@ export const pluginSettingProperties: INodeProperties[] = [
 				pluginSettingDataMode: ['fields'],
 			},
 		},
-		description: 'JSON object to store as merge variables. n8n expressions are supported here.',
+		description:
+			'Target-specific merge variables. Calendar writes from TRMNL Companion use an events array. n8n expressions are supported here.',
 	},
 	{
 		displayName: 'Markup Size',
@@ -211,7 +212,7 @@ export const pluginSettingProperties: INodeProperties[] = [
 	},
 	{
 		displayName:
-			'Update Data mutates server-side Plugin Setting data. It does not Force Refresh or prove delivery to a physical device.',
+			'Update Data works only for Plugin Settings and merge-variable schemas supported by TRMNL. A successful response acknowledges the request; verify persistence with Get Data. Calendar writes require the Companion/iPhone App provider and an events array. For a Webhook Private Plugin, use Private Plugin → Set/Get Content instead. This does not Force Refresh or prove delivery to a physical device.',
 		name: 'pluginSettingDataWriteNotice',
 		type: 'notice',
 		default: '',

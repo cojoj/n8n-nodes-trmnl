@@ -38,15 +38,12 @@ export class TrmnlPrivatePluginApi implements ICredentialType {
 			default: '',
 			required: true,
 			placeholder: 'https://trmnl.com/api/custom_plugins/your-plugin-uuid',
-			description:
-				'The Webhook URL from the saved Private Plugin, or only its Plugin Setting UUID',
+			description: 'The Webhook URL from the saved Private Plugin, or only its Plugin Setting UUID',
 		},
 	];
 
 	authenticate: IAuthenticate = async (credentials, requestOptions) => {
-		const endpoint = normalizePrivatePluginEndpoint(
-			String(credentials.webhookUrlOrUuid ?? ''),
-		);
+		const endpoint = normalizePrivatePluginEndpoint(String(credentials.webhookUrlOrUuid ?? ''));
 
 		if (!endpoint.ok) {
 			throw new Error(endpoint.error);

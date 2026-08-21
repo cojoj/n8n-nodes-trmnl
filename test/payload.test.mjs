@@ -10,24 +10,95 @@ import {
 } from '../dist/nodes/Trmnl/helpers/payload.js';
 
 describe('TRMNL payload helpers', () => {
-	it('keeps a full webhook URL', () => {
-		assert.deepEqual(
-			normalizePrivatePluginEndpoint('https://trmnl.com/api/custom_plugins/asdfqwerty1234'),
-			{ ok: true, value: 'https://trmnl.com/api/custom_plugins/asdfqwerty1234' },
-		);
-	});
-
-	it('converts a plugin UUID to the default webhook endpoint', () => {
-		assert.deepEqual(normalizePrivatePluginEndpoint('asdf-qwerty_1234'), {
-			ok: true,
-			value: 'https://trmnl.com/api/custom_plugins/asdf-qwerty_1234',
-		});
+	it('normalizes supported UUID shorthand and documented webhook URL forms', () => {
+		for (const value of [
+			'test-plugin_uuid-123',
+			'  test-plugin_uuid-123  ',
+			'https://trmnl.com/api/custom_plugins/test-plugin_uuid-123',
+			' HTTPS://TRMNL.COM/api/custom_plugins/test-plugin_uuid-123/ ',
+		]) {
+			assert.deepEqual(normalizePrivatePluginEndpoint(value), {
+				ok: true,
+				value: 'https://trmnl.com/api/custom_plugins/test-plugin_uuid-123',
+			});
+		}
 	});
 
 	it('rejects invalid UUID characters', () => {
 		assert.deepEqual(normalizePrivatePluginEndpoint('bad uuid'), {
 			ok: false,
 			error: 'Plugin Setting UUID may only contain letters, numbers, underscores, or hyphens.',
+		});
+	});
+
+	it('rejects unsupported schemes and origins without exposing the plugin token', () => {
+		const syntheticSecret = 'synthetic-secret_token-123';
+		const unsupportedEndpoints = [
+			`http://trmnl.com/api/custom_plugins/${syntheticSecret}`,
+			`ftp://trmnl.com/api/custom_plugins/${syntheticSecret}`,
+			`https://usetrmnl.com/api/custom_plugins/${syntheticSecret}`,
+			`https://example.com/api/custom_plugins/${syntheticSecret}`,
+			`https://api.trmnl.com/api/custom_plugins/${syntheticSecret}`,
+			`https://trmnl.com.example/api/custom_plugins/${syntheticSecret}`,
+			`https://trmnl.com./api/custom_plugins/${syntheticSecret}`,
+			`https://127.0.0.1/api/custom_plugins/${syntheticSecret}`,
+		];
+
+		for (const endpoint of unsupportedEndpoints) {
+			const result = normalizePrivatePluginEndpoint(endpoint);
+
+			assert.equal(result.ok, false);
+			assert.equal(result.error.includes(syntheticSecret), false);
+		}
+	});
+
+	it('rejects credentials, ports, queries, and fragments without exposing the plugin token', () => {
+		const syntheticSecret = 'synthetic-secret_token-123';
+		const unsupportedEndpoints = [
+			`https://user:password@trmnl.com/api/custom_plugins/${syntheticSecret}`,
+			`https://@trmnl.com/api/custom_plugins/${syntheticSecret}`,
+			`https://trmnl.com:443/api/custom_plugins/${syntheticSecret}`,
+			`https://trmnl.com:8443/api/custom_plugins/${syntheticSecret}`,
+			`https://trmnl.com/api/custom_plugins/${syntheticSecret}?source=n8n`,
+			`https://trmnl.com/api/custom_plugins/${syntheticSecret}?`,
+			`https://trmnl.com/api/custom_plugins/${syntheticSecret}#preview`,
+			`https://trmnl.com/api/custom_plugins/${syntheticSecret}#`,
+		];
+
+		for (const endpoint of unsupportedEndpoints) {
+			const result = normalizePrivatePluginEndpoint(endpoint);
+
+			assert.equal(result.ok, false);
+			assert.equal(result.error.includes(syntheticSecret), false);
+		}
+	});
+
+	it('rejects noncanonical and ambiguous webhook paths', () => {
+		const syntheticSecret = 'synthetic-secret_token-123';
+		const unsupportedEndpoints = [
+			`https://trmnl.com/api/custom_plugins/${syntheticSecret}/extra`,
+			`https://trmnl.com/api/custom_plugins//${syntheticSecret}`,
+			`https://trmnl.com/api/custom_plugins/${syntheticSecret}/.`,
+			`https://trmnl.com/api/custom_plugins/${syntheticSecret}/../other`,
+			`https://trmnl.com/api/custom_plugins/${syntheticSecret}%2fextra`,
+			`https://trmnl.com/api/custom_plugins/synthetic%2dsecret`,
+			`https://trmnl.com\\api\\custom_plugins\\${syntheticSecret}`,
+			`https://trmnl.com/API/custom_plugins/${syntheticSecret}`,
+			'https://trmnl.com/api/custom_plugins/',
+		];
+
+		for (const endpoint of unsupportedEndpoints) {
+			const result = normalizePrivatePluginEndpoint(endpoint);
+
+			assert.equal(result.ok, false);
+			assert.equal(result.error.includes(syntheticSecret), false);
+		}
+	});
+
+	it('returns fixed validation errors for malformed URLs', () => {
+		assert.deepEqual(normalizePrivatePluginEndpoint('https://[invalid'), {
+			ok: false,
+			error: 'Webhook URL is invalid.',
 		});
 	});
 

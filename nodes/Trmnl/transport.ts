@@ -1,4 +1,10 @@
-import type { IExecuteFunctions, IHttpRequestOptions, JsonObject } from 'n8n-workflow';
+import type {
+	ICredentialDataDecryptedObject,
+	ICredentialsDecrypted,
+	IExecuteFunctions,
+	IHttpRequestOptions,
+	JsonObject,
+} from 'n8n-workflow';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 const TRMNL_ACCOUNT_API_BASE_URL = 'https://trmnl.com';
@@ -122,7 +128,7 @@ function getUnprocessableEntityMessage(context: TrmnlApiRequestContext): string 
 		context.resource === 'pluginSetting' &&
 		(context.operation === 'readMarkup' || context.operation === 'writeMarkup')
 	) {
-		return 'TRMNL rejected this markup size. Use a size returned by Get Details or another size supported by the Plugin Setting.';
+		return 'TRMNL could not process this markup operation. Confirm that the size is returned by Get Details and the Plugin Setting is editable by this account.';
 	}
 
 	if (context.resource === 'markup') {
@@ -262,7 +268,18 @@ export async function trmnlPrivatePluginApiRequest(
 	this: IExecuteFunctions,
 	options: IHttpRequestOptions,
 	context: Omit<TrmnlApiRequestContext, 'credentialBoundary'>,
+	credentials: ICredentialDataDecryptedObject,
 ): Promise<unknown> {
+	// The modern HTTP helper has no item-index argument. Supplying the credential
+	// already resolved by the action prevents item expressions from falling back
+	// to the first input item's Private Plugin endpoint during authentication.
+	const credentialsDecrypted: ICredentialsDecrypted = {
+		id: 'resolved-per-item',
+		name: 'Resolved TRMNL Private Plugin credential',
+		type: 'trmnlPrivatePluginApi',
+		data: credentials,
+	};
+
 	return await requestWithErrorHandling(
 		this,
 		async () =>
@@ -270,6 +287,7 @@ export async function trmnlPrivatePluginApiRequest(
 				this,
 				'trmnlPrivatePluginApi',
 				options,
+				{ credentialsDecrypted },
 			),
 		{ ...context, credentialBoundary: 'privatePlugin' },
 	);
@@ -280,9 +298,8 @@ export async function trmnlPublicApiRequest(
 	options: IHttpRequestOptions,
 	context: Omit<TrmnlApiRequestContext, 'credentialBoundary'>,
 ): Promise<unknown> {
-	return await requestWithErrorHandling(
-		this,
-		async () => await this.helpers.httpRequest(options),
-		{ ...context, credentialBoundary: 'public' },
-	);
+	return await requestWithErrorHandling(this, async () => await this.helpers.httpRequest(options), {
+		...context,
+		credentialBoundary: 'public',
+	});
 }

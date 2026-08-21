@@ -2,34 +2,34 @@
 
 ## Supported Versions
 
-This project is currently pre-1.0. Security fixes are made against the latest
-published release and the default branch. If you encounter an issue on an older
-release, first verify whether it is still present in the latest version.
+The maintainer applies security fixes to the latest release and the default
+branch. If you find a problem in an old release, first make sure that the
+problem is in the latest release.
 
 ## Reporting a Vulnerability
 
-Please use GitHub's
+Use GitHub's
 [private vulnerability reporting form](https://github.com/cojoj/n8n-nodes-trmnl/security/advisories/new).
 Do not open a public issue, pull request, or discussion for a suspected
 vulnerability.
 
-Include enough information to reproduce and assess the report:
+Give this information:
 
-- affected package and n8n versions;
-- deployment type and relevant configuration;
-- reproduction steps or a minimal workflow;
-- expected and observed behavior;
-- potential impact and any known mitigations.
+- Affected package and n8n versions
+- Deployment type and applicable configuration
+- Reproduction steps or a small workflow
+- Expected behavior and actual behavior
+- Possible effect and known fixes
 
-Redact all API keys, webhook URLs, plugin UUIDs, polling-header secrets, account
-data, device identifiers, workflow credentials, and other private information.
-If a real secret was exposed, rotate it immediately before submitting the
-report.
+Remove all secrets and private data from the report. This data includes API
+keys, Webhook URLs, plugin UUIDs, Polling headers, account data, device IDs, and
+workflow credentials.
 
-The maintainer will validate the report, coordinate a fix when needed, and
-agree on disclosure timing with the reporter. Please allow reasonable time for
-investigation and remediation before publishing details.
+If you expose a secret, rotate it before you send the report.
 
-Ordinary bugs and feature requests can use the public issue tracker. Problems
-in n8n or TRMNL themselves should be reported through the upstream project's
-security process.
+The maintainer will examine the report and correct the problem when necessary.
+The maintainer and the reporter will agree on a publication time. Do not publish
+details before the maintainer completes the work.
+
+Use the public issue tracker for other bugs and feature requests. For a problem
+in n8n or TRMNL, use the security process of that project.

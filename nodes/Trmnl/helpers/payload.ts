@@ -3,6 +3,8 @@ import { validateFieldType } from 'n8n-workflow';
 
 const CUSTOM_PLUGIN_PATH = '/api/custom_plugins/';
 const DEFAULT_TRMNL_BASE_URL = 'https://trmnl.com';
+const PLUGIN_SETTING_UUID_PATTERN = /^[A-Za-z0-9_-]+$/;
+const PRIVATE_PLUGIN_PATH_PATTERN = /^\/api\/custom_plugins\/([A-Za-z0-9_-]+)\/?$/;
 
 export const DEFAULT_PAYLOAD_LIMIT_BYTES = 2048;
 export const TRMNL_PLUS_PAYLOAD_LIMIT_BYTES = 5120;
@@ -13,40 +15,90 @@ const MERGE_STRATEGIES = ['replace', 'deep_merge', 'stream'] as const;
 type MergeStrategy = (typeof MERGE_STRATEGIES)[number];
 type ValidationResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
-export function normalizePrivatePluginEndpoint(
-	webhookUrlOrUuid: string,
-): ValidationResult<string> {
+export function normalizePrivatePluginEndpoint(webhookUrlOrUuid: string): ValidationResult<string> {
 	const value = webhookUrlOrUuid.trim();
 
 	if (!value) {
 		return { ok: false, error: 'Enter a TRMNL Private Plugin webhook URL or UUID.' };
 	}
 
-	try {
-		const url = new URL(value);
-
-		if (!['http:', 'https:'].includes(url.protocol)) {
-			return { ok: false, error: 'Webhook URL must use HTTP or HTTPS.' };
-		}
-
-		return { ok: true, value: url.toString().replace(/\/$/, '') };
-	} catch (error) {
-		if (value.includes('://')) {
-			return {
-				ok: false,
-				error: error instanceof Error ? error.message : 'Webhook URL is invalid.',
-			};
-		}
+	if (PLUGIN_SETTING_UUID_PATTERN.test(value)) {
+		return { ok: true, value: `${DEFAULT_TRMNL_BASE_URL}${CUSTOM_PLUGIN_PATH}${value}` };
 	}
 
-	if (!/^[A-Za-z0-9_-]+$/.test(value)) {
+	if (!value.includes('://')) {
 		return {
 			ok: false,
 			error: 'Plugin Setting UUID may only contain letters, numbers, underscores, or hyphens.',
 		};
 	}
 
-	return { ok: true, value: `${DEFAULT_TRMNL_BASE_URL}${CUSTOM_PLUGIN_PATH}${value}` };
+	let url: URL;
+
+	try {
+		url = new URL(value);
+	} catch {
+		return { ok: false, error: 'Webhook URL is invalid.' };
+	}
+
+	if (url.protocol !== 'https:') {
+		return { ok: false, error: 'Webhook URL must use HTTPS.' };
+	}
+
+	const schemeSeparatorIndex = value.indexOf('://');
+	const authorityStartIndex = schemeSeparatorIndex + 3;
+	const authoritySuffix = value.slice(authorityStartIndex);
+	const authorityEndOffset = authoritySuffix.search(/[/?#]/);
+	const authorityEndIndex =
+		authorityEndOffset === -1 ? value.length : authorityStartIndex + authorityEndOffset;
+	const rawAuthority = value.slice(authorityStartIndex, authorityEndIndex);
+
+	if (url.username || url.password || rawAuthority.includes('@')) {
+		return { ok: false, error: 'Webhook URL must not include credentials.' };
+	}
+
+	if (url.hostname !== 'trmnl.com') {
+		return {
+			ok: false,
+			error: 'Webhook URL must use the documented TRMNL origin: https://trmnl.com.',
+		};
+	}
+
+	if (url.port || /:\d*$/.test(rawAuthority)) {
+		return { ok: false, error: 'Webhook URL must not include a port.' };
+	}
+
+	if (url.href.includes('?') || url.href.includes('#')) {
+		return { ok: false, error: 'Webhook URL must not include a query string or fragment.' };
+	}
+
+	if (value.includes('\\') || hasAsciiControlCharacters(value)) {
+		return { ok: false, error: 'Webhook URL contains unsupported characters.' };
+	}
+
+	const rawPath = value.slice(authorityEndIndex);
+	const pathMatch = PRIVATE_PLUGIN_PATH_PATTERN.exec(rawPath);
+
+	if (!pathMatch) {
+		return {
+			ok: false,
+			error: 'Webhook URL must match https://trmnl.com/api/custom_plugins/{plugin-setting-uuid}.',
+		};
+	}
+
+	return { ok: true, value: `${DEFAULT_TRMNL_BASE_URL}${CUSTOM_PLUGIN_PATH}${pathMatch[1]}` };
+}
+
+function hasAsciiControlCharacters(value: string): boolean {
+	for (const character of value) {
+		const characterCode = character.charCodeAt(0);
+
+		if (characterCode <= 0x1f || characterCode === 0x7f) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 export function parseJsonObject(value: unknown, fieldName: string): ValidationResult<IDataObject> {
