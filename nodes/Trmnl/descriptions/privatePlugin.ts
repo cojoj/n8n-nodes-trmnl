@@ -7,7 +7,7 @@ import {
 } from '../helpers/payload';
 
 function mergeVariablesModeProperty(
-	version: 1 | 1.1,
+	version: 1 | 1.1 | 1.2,
 	defaultValue: 'fields' | 'json',
 ): INodeProperties {
 	return {
@@ -70,6 +70,7 @@ export const privatePluginOperation: INodeProperties = {
 export const privatePluginFields: INodeProperties[] = [
 	mergeVariablesModeProperty(1, 'json'),
 	mergeVariablesModeProperty(1.1, 'fields'),
+	mergeVariablesModeProperty(1.2, 'fields'),
 	{
 		displayName: 'Merge Variables',
 		name: 'mergeVariableAssignments',

@@ -67,7 +67,7 @@ layers.
 | MT-07 | Replace, then two Stream updates with a limit | Stored arrays append and trim to the configured limit; all retained top-level keys are sent on every update. |
 | MT-08 | Safe 404 or naturally occurring API failure, with and without On Error → Continue | Normal mode fails without success output. Continue mode exposes only redacted resource, operation, status, and optional Retry-After context. |
 | MT-09 | Credential tests for a full Webhook URL, UUID, malformed value, and nonexistent UUID | Real URL and UUID succeed read-only; malformed and nonexistent values fail without exposing the endpoint or identifier. |
-| MT-10 | Markup Render with literal Liquid and variables | Hosted renderer returns the expected string; output exposes `rendered` and preserves the complete response. No Private Plugin credential is required. |
+| MT-10 | Markup Render with `Markup Source: Define Below` and `Variables Source: Input Data`, then `Markup Source: From Input Field`, then explicit JSON variables | Each incoming item's JSON is used automatically by the v1.2 default. A string in the selected top-level input field is used as that item's literal Liquid template without n8n evaluating its `{{ }}` syntax. All modes return the expected string, expose `rendered`, and preserve the complete response. Missing or non-string template fields fail locally. No credential is required, no hosted plugin state changes, and the supplied markup and variables are sent to TRMNL. |
 | MT-11 | Activity, preview, and physical device after a final clean Replace | n8n output, Activity, and preview correlate to one marker. The physical device shows the same marker only after its pull/check-in. |
 
 TRMNL documents small payload and request-rate limits. Avoid rapid retries and

@@ -14,6 +14,7 @@ function createExecuteContext({
 	},
 	credentialsByItem,
 	inputItems = [{ json: {} }],
+	typeVersion = 1,
 	httpResponse = { accepted: true },
 	httpError,
 	continueOnFail = false,
@@ -23,7 +24,7 @@ function createExecuteContext({
 		id: 'trmnl-test-node',
 		name: 'TRMNL',
 		type: 'n8n-nodes-trmnl.trmnl',
-		typeVersion: 1,
+		typeVersion,
 		position: [0, 0],
 		parameters,
 	};
@@ -842,6 +843,106 @@ describe('TRMNL node execution', () => {
 			rendered: 'Hello, Fixture!',
 			response: httpResponse,
 		});
+	});
+
+	it('uses each input item as the default Liquid variables for v1.2', async () => {
+		const inputItems = [
+			{ json: { greeting: 'Hello', name: 'Ada' } },
+			{ json: { greeting: 'Cześć', name: 'Jan' } },
+		];
+		const { result, requests } = await executeWith({
+			typeVersion: 1.2,
+			parameters: {
+				resource: 'markup',
+				operation: 'render',
+				markup: '{{ greeting }}, {{ name }}!',
+			},
+			inputItems,
+			httpResponse: { data: 'Rendered' },
+		});
+
+		assert.deepEqual(
+			requests.map((request) => request.options.body),
+			inputItems.map((item) => ({
+				markup: '{{ greeting }}, {{ name }}!',
+				variables: item.json,
+			})),
+		);
+		assert.deepEqual(
+			result[0].map((item) => ({ variables: item.json.variables, pairedItem: item.pairedItem })),
+			[
+				{ variables: inputItems[0].json, pairedItem: { item: 0 } },
+				{ variables: inputItems[1].json, pairedItem: { item: 1 } },
+			],
+		);
+	});
+
+	it('reads each v1.2 Liquid template from its paired input field', async () => {
+		const inputItems = [
+			{ json: { markup: 'Hello, {{ name }}!', name: 'Ada' } },
+			{ json: { markup: 'Cześć, {{ name }}!', name: 'Jan' } },
+		];
+		const { result, requests } = await executeWith({
+			typeVersion: 1.2,
+			parameters: {
+				resource: 'markup',
+				operation: 'render',
+				markupSource: 'inputField',
+				markupInputField: 'markup',
+			},
+			inputItems,
+			httpResponse: { data: 'Rendered' },
+		});
+
+		assert.deepEqual(
+			requests.map((request) => request.options.body),
+			inputItems.map((item) => ({
+				markup: item.json.markup,
+				variables: item.json,
+			})),
+		);
+		assert.deepEqual(
+			result[0].map((item) => item.pairedItem),
+			[{ item: 0 }, { item: 1 }],
+		);
+	});
+
+	it('rejects a missing or non-string Markup input field before HTTP', async () => {
+		for (const inputItems of [[{ json: {} }], [{ json: { markup: { template: 'invalid' } } }]]) {
+			const { context, requests } = createExecuteContext({
+				typeVersion: 1.2,
+				parameters: {
+					resource: 'markup',
+					operation: 'render',
+					markupSource: 'inputField',
+					markupInputField: 'markup',
+				},
+				inputItems,
+			});
+
+			await assert.rejects(new Trmnl().execute.call(context), /Markup input field/);
+			assert.equal(requests.length, 0);
+		}
+	});
+
+	it('keeps omitted Markup variablesMode on v1 and v1.1 using saved JSON variables', async () => {
+		for (const typeVersion of [1, 1.1]) {
+			const { requests } = await executeWith({
+				typeVersion,
+				parameters: {
+					resource: 'markup',
+					operation: 'render',
+					markup: 'Hello, {{ name }}!',
+					variables: '{"name":"Legacy"}',
+				},
+				inputItems: [{ json: { name: 'Input must not replace saved JSON' } }],
+			});
+
+			assert.deepEqual(requests[0].options.body, {
+				markup: 'Hello, {{ name }}!',
+				variables: { name: 'Legacy' },
+			});
+		}
 	});
 
 	it('preserves the raw Markup response when surfacing an empty rendered value', async () => {

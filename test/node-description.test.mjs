@@ -15,7 +15,7 @@ describe('TRMNL node description', () => {
 			assert.match(subtitle, new RegExp(`\\b${label}\\b`));
 		}
 		assert.doesNotMatch(subtitle, /operation.*resource|resource.*operation/);
-		assert.deepEqual(version, [1, 1.1]);
+		assert.deepEqual(version, [1, 1.1, 1.2]);
 	});
 
 	it('requires Account API credentials for Device, Playlist Item, and Plugin Setting operations', () => {
@@ -265,8 +265,8 @@ describe('TRMNL node description', () => {
 	it('offers native fields and JSON merge variable modes', () => {
 		const { properties, version } = new Trmnl().description;
 		const modes = properties.filter((property) => property.name === 'mergeVariablesMode');
-		assert.deepEqual(version, [1, 1.1]);
-		assert.equal(modes.length, 2);
+		assert.deepEqual(version, [1, 1.1, 1.2]);
+		assert.equal(modes.length, 3);
 		assert.deepEqual(
 			modes.map((mode) => ({
 				default: mode.default,
@@ -275,6 +275,7 @@ describe('TRMNL node description', () => {
 			[
 				{ default: 'json', version: [1] },
 				{ default: 'fields', version: [1.1] },
+				{ default: 'fields', version: [1.2] },
 			],
 		);
 		for (const mode of modes) {
@@ -297,20 +298,56 @@ describe('TRMNL node description', () => {
 		assert.equal(json.placeholder, undefined);
 	});
 
-	it('keeps Liquid markup separate from n8n expressions', () => {
+	it('keeps Liquid markup literal and defaults new workflows to Input Data', () => {
 		const { properties } = new Trmnl().description;
 		const markup = properties.find((property) => property.name === 'markup');
+		const markupSource = properties.find((property) => property.name === 'markupSource');
+		const markupInputField = properties.find((property) => property.name === 'markupInputField');
+		const notice = properties.find((property) => property.name === 'markupRenderNotice');
 		assert.ok(markup);
 		assert.equal(markup.displayName, 'Liquid Markup');
 		assert.equal(markup.noDataExpression, true);
+		assert.deepEqual(markup.displayOptions?.hide?.markupSource, ['inputField']);
 		assert.match(markup.description ?? '', /sent to TRMNL unchanged/);
-
-		const variablesMode = properties.find((property) => property.name === 'variablesMode');
-		assert.ok(variablesMode && 'options' in variablesMode && variablesMode.options);
-		assert.equal(variablesMode.default, 'json');
+		assert.ok(markupSource && 'options' in markupSource && markupSource.options);
+		assert.equal(markupSource.default, 'defineBelow');
+		assert.deepEqual(markupSource.displayOptions?.show?.['@version'], [1.2]);
 		assert.deepEqual(
-			variablesMode.options.map((option) => option.value),
-			['fields', 'json'],
+			markupSource.options.map((option) => option.value),
+			['defineBelow', 'inputField'],
+		);
+		assert.ok(markupInputField);
+		assert.equal(markupInputField.default, 'markup');
+		assert.equal(markupInputField.noDataExpression, true);
+		assert.deepEqual(markupInputField.displayOptions?.show?.markupSource, ['inputField']);
+		assert.deepEqual(markupInputField.displayOptions?.show?.['@version'], [1.2]);
+		assert.ok(notice);
+		assert.match(notice.displayName, /public Render endpoint/);
+		assert.match(notice.displayName, /does not save markup/);
+		assert.match(notice.displayName, /refresh a device/);
+
+		const variablesModes = properties.filter((property) => property.name === 'variablesMode');
+		assert.deepEqual(
+			variablesModes.map((mode) => ({
+				displayName: mode.displayName,
+				default: mode.default,
+				version: mode.displayOptions?.show?.['@version'],
+				options: 'options' in mode ? mode.options?.map((option) => option.value) : undefined,
+			})),
+			[
+				{
+					displayName: 'Variables Source',
+					default: 'json',
+					version: [1, 1.1],
+					options: ['fields', 'json'],
+				},
+				{
+					displayName: 'Variables Source',
+					default: 'input',
+					version: [1.2],
+					options: ['input', 'fields', 'json'],
+				},
+			],
 		);
 
 		const assignments = properties.find((property) => property.name === 'variableAssignments');
@@ -320,7 +357,7 @@ describe('TRMNL node description', () => {
 
 		const variables = properties.find((property) => property.name === 'variables');
 		assert.ok(variables);
-		assert.deepEqual(variables.displayOptions?.hide?.variablesMode, ['fields']);
+		assert.deepEqual(variables.displayOptions?.hide?.variablesMode, ['fields', 'input']);
 		assert.match(variables.description ?? '', /n8n expressions are supported here/);
 	});
 });

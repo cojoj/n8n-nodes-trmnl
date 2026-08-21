@@ -17,7 +17,7 @@ export class Trmnl implements INodeType {
 		name: 'trmnl',
 		icon: { light: 'file:trmnl.svg', dark: 'file:trmnl.dark.svg' },
 		group: ['output'],
-		version: [1, 1.1],
+		version: [1, 1.1, 1.2],
 		subtitle:
 			'={{ ({ device: "Device", markup: "Markup", playlistItem: "Playlist Item", pluginSetting: "Plugin Setting", privatePlugin: "Private Plugin" })[$parameter["resource"]] || "TRMNL" }}',
 		description: 'Send workflow data to TRMNL and manage account resources',
