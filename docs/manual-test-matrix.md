@@ -1,23 +1,13 @@
 # Manual Test Matrix
 
-Use this procedure for release candidates and changes that affect credentials,
-requests, Polling, rendering, hosted state, or device-facing behavior. It is an
-evergreen checklist, not a release evidence log. Record dated results with the
-release or pull request being validated.
+Use this checklist for release candidates and integration changes. Record the
+date and results in the release or pull request.
 
 ## Evidence Boundaries
 
-Record these layers separately:
-
-1. automated unit and package checks;
-2. installed-node behavior in n8n;
-3. TRMNL API acceptance or stored state;
-4. signed-in portal, Activity, or rendered-preview state;
-5. physical-device behavior after refresh; and
-6. restoration and cleanup.
-
-A successful n8n execution or HTTP response is not evidence for the later
-layers.
+Record automated checks, n8n execution, API state, portal state, device
+behavior, and cleanup as different results. One result does not prove a
+different result.
 
 ## Preconditions
 
@@ -32,94 +22,79 @@ layers.
    pnpm exec n8n-node cloud-support
    ```
 
-2. Install the packed or published candidate in a fresh supported n8n user
-   folder. Record the package, Node.js, and n8n versions.
-3. Create fresh action and Polling workflows using the installed candidate.
-   They must resolve `n8n-nodes-trmnl.trmnl` and
-   `n8n-nodes-trmnl.trmnlTrigger`; an unknown-node placeholder is a failure.
-4. Use a disposable Webhook Private Plugin and unique run marker. Do not test
-   destructive merge behavior against production data.
-5. Use dedicated, temporary credentials. Never retain API keys, Webhook URLs,
-   Plugin Setting UUIDs, Polling header values, account data, or device IDs in
-   screenshots, logs, issues, or the repository.
-6. For Polling, expose only the dedicated production webhook over trusted HTTPS.
-   Do not expose the n8n editor or unrelated routes.
-7. For Account API writes, use a disposable compatible Plugin Setting, a
-   nonessential Playlist Item, and an explicitly chosen Device. Before MT-19,
-   choose a target and payload schema that TRMNL explicitly documents and the
-   target is configured to accept. Get Data succeeding does not establish write
-   support. For calendar writes, configure the Companion/iPhone App provider
-   and send an `events` array. A Webhook Private Plugin uses Private Plugin
-   Set/Get Content instead. Save exact original values outside the repository
-   before any mutation.
-8. Do not run MT-19, MT-21, MT-23, or MT-24 without an explicit checkpoint.
-   Restore and independently verify each original value before continuing.
+2. Install the candidate in a new supported n8n folder. Record the package,
+   Node.js, and n8n versions. Create new action and Polling workflows. If n8n
+   shows an unknown TRMNL node, the test fails.
+3. Use disposable targets, unique markers, and temporary credentials. Keep all
+   secrets and production identifiers out of evidence and the repository.
+4. Expose only the Polling production webhook through trusted HTTPS.
+5. Use documented, compatible Account API write targets. Save the values before
+   the test in a secure location. Do not save these values in the repository.
+   Create a checkpoint before MT-19, MT-21, MT-23, and MT-24. Restore each value
+   before you continue. Use a different method to make sure that each restored
+   value is correct.
 
 ## Private Plugin and Markup
 
 <!-- prettier-ignore -->
 | ID | Scenario | Required result |
 | --- | --- | --- |
-| MT-01 | Set Content with Replace and a unique marker | One paired successful item; stored variables, Activity, and preview contain the marker. Do not claim device delivery. |
-| MT-02 | Get Content after MT-01 | Returned content matches stored variables without creating a new render or device update. |
+| MT-01 | Set Content with Replace and a unique marker | One paired successful item. The stored variables, Activity, and preview contain the marker. Do not claim device delivery. |
+| MT-02 | Get Content after MT-01 | Returned content matches stored variables. The operation does not create a new render or device update. |
 | MT-03 | Invalid JSON such as `{"title":}` | n8n blocks it or reports valid-JSON failure before an HTTP request. |
 | MT-04 | Non-object JSON such as `[]` | Local object validation fails before an HTTP request. |
-| MT-05 | Payload larger than the selected Regular (2 KB) or TRMNL+ (5 KB) limit | Local byte-size validation fails; no Activity or hosted-state change occurs. |
-| MT-06 | Replace, then Deep Merge, then Get Content | Updated nested values change while untouched nested and top-level values remain. |
-| MT-07 | Replace, then two Stream updates with a limit | Stored arrays append and trim to the configured limit; all retained top-level keys are sent on every update. |
-| MT-08 | Safe 404 or naturally occurring API failure, with and without On Error → Continue | Normal mode fails without success output. Continue mode exposes only redacted resource, operation, status, and optional Retry-After context. |
-| MT-09 | Credential tests for a full Webhook URL, UUID, malformed value, and nonexistent UUID | Real URL and UUID succeed read-only; malformed and nonexistent values fail without exposing the endpoint or identifier. |
-| MT-10 | Markup Render with `Markup Source: Define Below` and `Variables Source: Input Data`, then `Markup Source: From Input Field`, then explicit JSON variables | Each incoming item's JSON is used automatically by the v1.2 default. A string in the selected top-level input field is used as that item's literal Liquid template without n8n evaluating its `{{ }}` syntax. All modes return the expected string, expose `rendered`, and preserve the complete response. Missing or non-string template fields fail locally. No credential is required, no hosted plugin state changes, and the supplied markup and variables are sent to TRMNL. |
-| MT-11 | Activity, preview, and physical device after a final clean Replace | n8n output, Activity, and preview correlate to one marker. The physical device shows the same marker only after its pull/check-in. |
+| MT-05 | Payload larger than the selected Regular (2 KB) or TRMNL+ (5 KB) limit | Local byte-size validation fails. Activity and hosted state do not change. |
+| MT-06 | Replace, then Deep Merge, then Get Content | Updated nested values change. Untouched nested and top-level values do not change. |
+| MT-07 | Replace, then two Stream updates with a limit | Stored arrays append and trim to the configured limit. Each update sends all stored top-level keys. |
+| MT-08 | Safe 404 or API failure that occurs naturally, with and without On Error → Continue | Normal mode fails without success output. Continue mode exposes only redacted resource, operation, status, and optional Retry-After context. |
+| MT-09 | Credential tests for a full Webhook URL, UUID, malformed value, and nonexistent UUID | The production URL and UUID pass read-only tests. Failures for malformed and nonexistent values hide the endpoint and identifier. |
+| MT-10 | Markup Render with `Markup Source: Define Below` and `Variables Source: Input Data`, then `Markup Source: From Input Field`, then explicit JSON variables | By default, v1.2 uses the JSON from each input item. The selected top-level field supplies the Liquid template. n8n does not evaluate its Liquid syntax. Each mode returns the correct `rendered` string and the complete response. A missing or non-string template field causes a local error. No credential is necessary. The operation does not change hosted plugin state. The node sends the markup and variables to TRMNL. |
+| MT-11 | Activity, preview, and physical device after the last clean Replace | n8n output, Activity, and preview correlate to one marker. The physical device shows the same marker only after its pull/check-in. |
 
-TRMNL documents small payload and request-rate limits. Avoid rapid retries and
-never flood the service to manufacture a 429 response.
+TRMNL documents small payload and request-rate limits. Do not retry quickly.
+Do not send requests to cause a 429 response.
 
 ## Polling Trigger
 
 <!-- prettier-ignore -->
 | ID | Scenario | Required result |
 | --- | --- | --- |
-| MT-12 | Active Polling workflow using its public production URL | Hosted TRMNL starts one execution and receives HTTP 200 with the final node's first root JSON object, without an n8n envelope. |
-| MT-13 | Polling Header Auth with matching, wrong, and missing values | Matching auth starts one execution and renders expected variables. Wrong and missing values return 401 without executions. Workflow input contains no request headers. Remove the public exposure and temporary secret afterward. |
+| MT-12 | Active Polling workflow with its public production URL | TRMNL starts one execution. It receives HTTP 200 with the last node's first root JSON object and no n8n envelope. |
+| MT-13 | Polling Header Auth with correct, incorrect, and missing values | Correct auth starts one execution and renders the expected variables. Incorrect and missing values return 401 without an execution. Workflow input contains no request headers. Remove the public exposure and temporary secret after the test. |
 
 ## Account API Reads
 
 <!-- prettier-ignore -->
 | ID | Scenario | Required result |
 | --- | --- | --- |
-| MT-14 | Device → List | One item per returned device; no hosted state changes. |
-| MT-15 | Device → Get using an ID from MT-14 | One matching device item; no hosted state changes. |
-| MT-16 | Plugin Setting → List, with and without a documented filter | Returned fields are preserved and the filter is sent only when supplied. Do not claim a complete inventory beyond the response. |
-| MT-17 | Plugin Setting → Get Details | Detail fields are preserved without recording real identifiers. No hosted state changes. |
-| MT-18 | Plugin Setting → Get Data by supported identifier | Data is preserved without a fixed schema. Natural 401/404/422 cases remain credential-safe; do not mutate state to manufacture an error. |
-| MT-20 | Plugin Setting → Read Markup | Exact literal content matches the editor. Save a protected exact backup outside the repository before MT-21. |
-| MT-22 | Playlist Item → List | One item per returned playlist item with fields preserved; no hosted state changes. |
+| MT-14 | Device → List | One item for each returned device. Hosted state does not change. |
+| MT-15 | Device → Get with an ID from MT-14 | One device item with the specified ID. Hosted state does not change. |
+| MT-16 | Plugin Setting → List, with and without a documented filter | The node keeps all returned fields. It sends the filter only when you supply a filter. Do not claim that the response is a complete inventory. |
+| MT-17 | Plugin Setting → Get Details | The node keeps all detail fields and does not record production identifiers. Hosted state does not change. |
+| MT-18 | Plugin Setting → Get Data by supported identifier | The node keeps data without a fixed schema. A 401, 404, or 422 error does not contain credentials. Do not change state to cause an error. |
+| MT-20 | Plugin Setting → Read Markup | The literal content is the same as the editor content. Save a protected, complete backup outside the repository before MT-21. |
+| MT-22 | Playlist Item → List | One item for each returned playlist item. The node keeps all fields. Hosted state does not change. |
 
 ## Account API Writes and Restoration
 
 <!-- prettier-ignore -->
 | ID | Scenario | Required result |
 | --- | --- | --- |
-| MT-19 | Plugin Setting → Update Data on a documented, correctly configured write target | Save the exact data externally, then send only the target's documented `merge_variables` schema. Treat the Update Data response as acknowledgement only: pass only when an independent Get Data contains the marker. A successful response that echoes the marker without persisted readback is a failure. Restore the exact backup and verify it independently. Do not use a Webhook Private Plugin or call this a render, Force Refresh, or device update. |
-| MT-21 | Plugin Setting → Write Markup, then restore | Literal content and preview show the temporary marker. Write the exact backup, then independently verify the restored source and marker-free preview. |
-| MT-23 | Playlist Item → Set Visibility, then restore | n8n output, a subsequent List, and the signed-in Playlist UI agree on both the temporary value and exact restored value. Do not claim a content push. |
-| MT-24 | Device → Update Sleep Mode, then restore | Use 15-minute values that the signed-in settings UI can represent. The Account API accepts integer minutes, but arbitrary minute values cannot be compared reliably with the portal selectors. The request includes only the documented sleep fields. Device Get and the signed-in settings UI agree on the temporary and exact restored values. Physical behavior is a separate optional observation. |
+| MT-19 | Plugin Setting → Update Data on a documented compatible write target | Save the complete data outside the repository. Send only the documented `merge_variables` schema of the target. The Update Data response is only an acknowledgment. The result is PASS only when a Get Data operation with a different method contains the marker. A response that only echoes the marker is a failure. Restore the backup. Use a different method to make sure that the restored data is correct. Do not use a Webhook Private Plugin. Do not identify this operation as Render, Force Refresh, or a device update. |
+| MT-21 | Plugin Setting → Write Markup, then restore | The literal content and preview show the temporary marker. Write the complete backup. Use a different method to make sure that the source is correct and the preview has no marker. |
+| MT-23 | Playlist Item → Set Visibility, then restore | The n8n output, a subsequent List operation, and the Playlist UI show the temporary value. They also show the restored value. Do not claim a content push. |
+| MT-24 | Device → Update Sleep Mode, then restore | Use 15-minute values that the settings UI can show. The Account API accepts integer minutes. Portal selectors cannot reliably show other minute values. The request contains only documented sleep fields. Device Get and the settings UI show the temporary value and the restored value. Device behavior is an optional result. |
 
-Every write is a single attempt. If a step fails, stop and restore the target
-before diagnosing or changing code.
+Send each write one time. If a step fails, stop the test. Restore the target
+before you examine the failure or change code.
 
 ## Cleanup
 
-Before declaring acceptance complete:
+- Restore or delete disposable TRMNL targets.
+- Remove temporary n8n state and public exposure.
+- Remove temporary secrets and backups.
+- Use a different method to make sure that restored state is correct.
+- Run the quality gate from a clean checkout.
 
-- restore or delete every disposable TRMNL target;
-- remove temporary n8n workflows, credentials, user folders, files, and public
-  exposure;
-- verify hosted and portal state independently after restoration;
-- clear temporary secrets and protected backups when no longer needed; and
-- rerun the automated quality gate from a clean checkout.
-
-Unexpected hosted behavior is an observation first. Do not turn it into a
-documented contract or code change until the official API and a reproducible
-test support it.
+Unexpected hosted behavior is only an observation. Do not make it a documented
+contract until official documentation and a repeatable test support it.

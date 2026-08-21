@@ -16,27 +16,22 @@
   <a href="https://github.com/cojoj/n8n-nodes-trmnl/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-171717" alt="MIT license"></a>
 </p>
 
-This independent n8n community package sends workflow data to TRMNL, serves
-Polling responses, and manages a focused set of Account API resources. TRMNL
-devices are pull-based: server-side content changes appear on the physical
-device on a later refresh or check-in, not as an immediate push.
-
-The project prioritizes compatibility, release validation, documentation, and
-repository quality over expanding the operation surface. See the
-[architecture decisions](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/architecture.md)
-for the durable product and safety boundaries.
+This n8n community package sends workflow data to TRMNL. It also supplies
+Polling responses and manages the Account API resources in the table below. A
+TRMNL device gets new content during a refresh or check-in. It does not get a
+push at that time.
 
 ## Install
 
-On a self-hosted n8n instance, open **Settings → Community Nodes**, choose
-**Install**, and enter the exact package name:
+On a self-hosted n8n instance, open **Settings → Community Nodes**. Select
+**Install**. Type this package name:
 
 ```text
 n8n-nodes-trmnl
 ```
 
-Follow n8n's [community node installation guide](https://docs.n8n.io/integrations/community-nodes/installation/)
-for instance requirements and alternative installation methods. After
+The n8n [community node installation guide](https://docs.n8n.io/integrations/community-nodes/installation/)
+gives instance requirements and other installation methods. After the
 installation, search for **TRMNL** or **TRMNL Trigger** in the node picker.
 
 ## Nodes and Operations
@@ -51,10 +46,9 @@ installation, search for **TRMNL** or **TRMNL Trigger** in the node picker.
 | TRMNL | Plugin Setting | List, Get Details, Get Data, Update Data, Read Markup, Write Markup |
 | TRMNL Trigger | Polling | GET or POST, with optional Header Auth |
 
-No action retries automatically. Use n8n's **Retry On Fail** deliberately for
-transient reads or Markup Render, and review write side effects before enabling
-it for Set Content, Set Visibility, Update Sleep Mode, Update Data, or Write
-Markup.
+Action operations do not have automatic retries. Use **Retry On Fail** only for
+temporary read errors or Markup Render. Before you use it for a write operation,
+examine the possible side effects.
 
 ## Credentials
 
@@ -62,58 +56,51 @@ Markup.
   Plugin Setting UUID. Use it for Private Plugin Set/Get Content.
 - **TRMNL Account API** stores a `user_` Account API key. TRMNL requires a
   developer license for this API. Use it for Device, Playlist Item, and
-  compatible Plugin Setting operations. A Webhook Private Plugin uses Private
-  Plugin Set/Get Content instead of Account API Update/Get Data.
+  compatible Plugin Setting operations. Use Private Plugin Set/Get Content for
+  a Webhook Private Plugin. Do not use Account API Update/Get Data for it.
 - **TRMNL Polling Header Auth API** stores the custom header name and value used
   to authenticate incoming Polling requests. Configure the same pair in TRMNL.
 
-These credentials are intentionally separate trust boundaries. Do not use an
-Account API key where a Private Plugin endpoint is expected, and do not expose
-Polling without authentication unless the workflow is deliberately public.
+Each credential has a different trust boundary. Do not use a credential for a
+different trust boundary. Use Polling without authentication only when you
+intentionally make it public.
 
 ## Quick Start: Webhook Content
 
 1. In TRMNL, create a Private Plugin with the **Webhook** strategy.
 2. Create a **TRMNL Private Plugin API** credential in n8n.
-3. Add a TRMNL node, select **Private Plugin** and **Set Content**, and choose
+3. Add a TRMNL node. Select **Private Plugin** and **Set Content**. Select
    the credential.
 4. Add merge variables with **Using Fields Below**, or use **Using JSON** for
    nested objects and arrays.
-5. Execute the node and reference those variables from the Private Plugin's
-   Liquid markup.
-6. Confirm the stored data and preview in TRMNL, then wait for the device's next
-   refresh if physical-device delivery matters.
+5. Execute the node. Use those variable names in the Private Plugin Liquid
+   markup.
+6. Make sure that TRMNL contains the data and shows the preview. For a device
+   check, wait for the next refresh.
 
 ## Polling
 
-Add a **TRMNL Trigger**, connect it to a workflow that returns one root JSON
-object, activate the workflow, and paste the trigger's production URL into the
-Private Plugin's Polling URL. The production webhook must be publicly reachable
-over HTTPS, the HTTP verb must match, and the workflow should stay fast because
-the response is synchronous.
+Add a **TRMNL Trigger**. Connect it to a workflow that returns one root JSON
+object. Activate the workflow. Copy the production URL to the Private Plugin
+Polling URL.
 
-Header Auth is recommended. Enter the same pair in TRMNL Polling Headers as
-`Name: Value` or `name=value`. Rejected credentials return HTTP 401 before a
-workflow execution begins, and incoming headers are not copied into workflow
-data.
+The production webhook must be public through HTTPS. The HTTP verb must be the
+same in TRMNL and n8n. The workflow must send the response quickly because the
+operation is synchronous.
+
+Use Header Auth. Type the same pair in TRMNL Polling Headers as `Name: Value` or
+`name=value`. Incorrect credentials return HTTP 401 before the workflow starts.
+The workflow data does not contain the incoming headers.
 
 ## Compatibility
 
-- The package uses n8n strict community-node metadata and the official
-  `@n8n/node-cli` toolchain.
-- CI runs the full build and test suite on Node.js 22 and the current LTS release.
-- A scheduled compatibility workflow tests the package against the latest
-  `n8n-workflow` runtime and node tooling without modifying the repository or
-  publishing anything.
-- Existing node names, credential names, parameter names, and saved workflow
-  behavior are compatibility contracts. Breaking behavior requires explicit
-  node versioning and regression coverage.
+Existing node names, credential names, parameters, versions, and saved-workflow
+behavior are compatibility contracts. CI tests Node.js 22 and the current LTS.
+A scheduled workflow checks the latest n8n runtime and tools.
 
-Exact tool versions are declared in `package.json` and `pnpm-lock.yaml`. A green
-automated build proves package behavior, not hosted TRMNL state, rendered UI, or
-physical-device delivery; use the
+Automated checks do not prove hosted TRMNL or physical-device behavior. Use the
 [manual test matrix](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/manual-test-matrix.md)
-for those boundaries.
+for live validation.
 
 ## Development
 
@@ -130,20 +117,17 @@ pnpm exec n8n-node cloud-support
 ```
 
 Run `pnpm dev` for local n8n editor validation. Do not commit generated `dist/`
-output, bump the package version, create a changelog, or run a local release.
-Stable GitHub Releases are the only publication trigger; see the
+output. Do not change the package version. Only a stable GitHub Release starts
+publication. Refer to the
 [maintainer release process](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/releasing.md).
 
 ## Project Links
 
-- [Architecture and safety boundaries](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/architecture.md)
+- [Architecture](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/architecture.md)
 - [Contributing](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/CONTRIBUTING.md)
 - [Security policy](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/SECURITY.md)
-- [Manual release-candidate checks](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/manual-test-matrix.md)
-- [Brand asset provenance](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/brand-assets.md)
+- [Manual test matrix](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/manual-test-matrix.md)
 - [TRMNL API documentation](https://docs.trmnl.com/go)
-- [TRMNL OpenAPI specification](https://trmnl.com/api-docs/openapi.yaml)
 - [n8n community-node documentation](https://docs.n8n.io/integrations/community-nodes/)
 
-TRMNL and n8n are trademarks of their respective owners. This project is not
-endorsed by or affiliated with either company.
+TRMNL and n8n own their trademarks. They do not endorse this project.

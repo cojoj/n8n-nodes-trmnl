@@ -1,30 +1,21 @@
 ## Summary
 
-<!-- Explain what changed, why it is needed, and link a related issue when applicable. -->
+<!-- What did you change? Why is the change necessary? -->
 
 ## Validation
-
-<!-- Check only what you ran. Explain any relevant unchecked item. -->
 
 - [ ] `pnpm test`
 - [ ] `pnpm lint`
 - [ ] `pnpm format:check`
-- [ ] `pnpm pack --dry-run` (package or dependency changes)
-- [ ] Relevant checks from `docs/manual-test-matrix.md` (behavior or integration changes)
+- [ ] `pnpm pack --dry-run` if the package changed
+- [ ] Applicable manual test cases if you changed behavior
 
 ## Live validation
 
-<!--
-Describe any n8n, TRMNL preview/activity, or physical-device checks performed.
-Keep these outcomes distinct. Write "Not required" for documentation-only or
-internal changes.
--->
+<!-- Report n8n, TRMNL, and physical-device evidence as different results. Write "Not necessary" if there are no live checks. -->
 
 ## Compatibility and security
 
-- [ ] Existing node, operation, parameter, and credential names remain
-      compatible, or the breaking change was discussed first.
-- [ ] No real credentials, webhook URLs, plugin UUIDs, polling headers, account
-      data, device identifiers, or other secrets are included.
-- [ ] The package version is unchanged and no committed changelog is added;
-      releases derive both from GitHub tags and merged pull requests.
+- [ ] The change keeps saved-workflow compatibility, or it adds a node version.
+- [ ] The change does not contain secrets or production identifiers.
+- [ ] The change does not change the package version or add a changelog.

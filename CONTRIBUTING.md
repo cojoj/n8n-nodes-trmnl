@@ -1,15 +1,15 @@
 # Contributing
 
-Thanks for helping improve `n8n-nodes-trmnl`. Focused bug fixes, tests,
-documentation improvements, and well-scoped node operations are welcome.
+Thank you for your work on `n8n-nodes-trmnl`. You can contribute small bug
+fixes, tests, documentation changes, and node operations.
 
 ## Before You Start
 
-- Open a pull request directly for a small bug fix or documentation change.
-- Open an issue before implementing a new resource, operation, credential type,
-  breaking workflow change, or runtime dependency.
-- Report security vulnerabilities privately as described in
-  [SECURITY.md](SECURITY.md), not in a public issue.
+- For a small bug fix or documentation change, open a pull request.
+- Before you add a resource, operation, credential type, breaking change, or
+  runtime dependency, open an issue.
+- For a security problem, use [SECURITY.md](SECURITY.md). Do not use a public
+  issue.
 
 ## Development Setup
 
@@ -24,81 +24,57 @@ pnpm lint
 pnpm format:check
 ```
 
-`pnpm test` builds the package before running the automated tests. Before
-submitting a packaging change, also inspect the published file set:
+`pnpm test` builds before it starts the tests. For a package change, also
+examine the published file set:
 
 ```bash
 pnpm pack --dry-run
 ```
 
-Use `pnpm dev` when a change needs validation in the n8n editor or against a
-live TRMNL service.
+Use `pnpm dev` for editor or live-service validation.
 
 ## Project Boundaries
 
-- Preserve existing node names, parameter names, credential names, and node
-  versions unless a breaking change has been discussed first.
-- Keep `dependencies` empty. This project deliberately avoids runtime
-  dependencies to preserve its lean package and n8n Cloud eligibility.
-- Keep `n8n-workflow` as a peer dependency and preserve the single pnpm
-  lockfile.
-- Keep credentials narrowly scoped. Secret fields must stay masked, and
-  credentials, webhook URLs, API keys, header values, or account data must
-  never be logged or committed.
-- Do not bump the package version or maintain a committed changelog. The
-  publish workflow derives the package version from the GitHub Release tag, and
-  GitHub generates release notes from merged pull requests.
+- Keep saved-workflow contracts. Before a breaking change, agree on the change
+  and add a node version.
+- Keep runtime `dependencies` empty, `n8n-workflow` as a peer dependency, and
+  the pnpm lockfile authoritative.
+- Keep credentials in their specified scope. Keep secret fields masked. Do not
+  log or commit credentials, Webhook URLs, API keys, header values, or account
+  data.
+- Do not change the package version or add a changelog. Releases derive their
+  version and notes from GitHub.
 
 ## Dependency Maintenance
 
-The `Latest n8n Runtime and Tooling Compatibility` workflow runs daily. It
-updates `n8n-workflow` and `@n8n/node-cli` only inside an ephemeral runner and
-executes the full build, test, lint, and Cloud-support checks. It does not
-commit changes, open pull requests, publish packages, or prove that an update
-is ready to merge.
-
-Review the complete development toolchain weekly with:
+Examine the toolchain with:
 
 ```bash
 pnpm outdated
 pnpm audit
 ```
 
-Group compatible minor and patch updates into one focused pull request. Keep at
-most one dependency-maintenance pull request open at a time; merge or close it
-before starting another. Review major updates separately. When adopting an
-update, inspect the manifest and lockfile diff, remove obsolete security
-overrides where possible, and run `pnpm test`, `pnpm lint`, and
-`pnpm pack --dry-run`. Handle actionable security updates immediately rather
-than waiting for the weekly review.
+Keep each dependency change small. Examine the manifest and lockfile changes.
+Remove overrides that are not necessary. Run all package checks. Examine major
+updates and security fixes in different pull requests.
 
 ## Tests and Fixtures
 
-Add or update automated coverage for behavior changes. Keep request assertions
-separate from response assertions so API-contract changes remain easy to
-review.
+Add tests for behavior changes. Keep request assertions and response assertions
+in different tests. Fixtures must be synthetic and must not contain secrets.
 
-Fixtures in `test/fixtures/` must be synthetic and redacted. They must not
-contain real API keys, plugin UUIDs, device identifiers, webhook headers, or
-account data. Update the smallest relevant fixture when an API shape changes.
-
-Automated tests cannot prove hosted TRMNL state or physical-device delivery.
-For changes that affect credentials, API requests, rendering, polling, merge
-semantics, or device-facing behavior, follow the relevant cases in
-[`docs/manual-test-matrix.md`](docs/manual-test-matrix.md). Distinguish between:
-
-1. a successful n8n execution;
-2. TRMNL accepting or rendering the data;
-3. the physical device displaying it after refresh.
+For credentials, requests, rendering, Polling, or device behavior, run the
+applicable [manual test cases](docs/manual-test-matrix.md). Automated tests do
+not prove hosted or physical-device behavior.
 
 ## Pull Requests
 
-Keep each pull request focused and explain:
+Keep each pull request small. Give this information:
 
-- what changed and why;
-- whether workflows or credentials are affected;
-- which automated checks passed;
-- which live checks were completed, or why they were not required.
+- What changed and why
+- Effects on workflows or credentials
+- Automated check results
+- Live check results, or a statement that live checks were not necessary
 
-Do not commit generated `dist/` output. Before requesting review, run
-`pnpm test`, `pnpm lint`, `pnpm format:check`, and any relevant manual checks.
+Do not commit generated `dist/` output. Run the applicable automated and manual
+checks before you request a review.
