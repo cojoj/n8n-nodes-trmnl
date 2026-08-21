@@ -47,9 +47,12 @@ layers.
    Do not expose the n8n editor or unrelated routes.
 7. For Account API writes, use a disposable compatible Plugin Setting, a
    nonessential Playlist Item, and an explicitly chosen Device. Before MT-19,
-   confirm Get Data succeeds for the target; a Webhook Private Plugin uses
-   Private Plugin Set/Get Content instead. Save exact original values outside
-   the repository before any mutation.
+   choose a target and payload schema that TRMNL explicitly documents and the
+   target is configured to accept. Get Data succeeding does not establish write
+   support. For calendar writes, configure the Companion/iPhone App provider
+   and send an `events` array. A Webhook Private Plugin uses Private Plugin
+   Set/Get Content instead. Save exact original values outside the repository
+   before any mutation.
 8. Do not run MT-19, MT-21, MT-23, or MT-24 without an explicit checkpoint.
    Restore and independently verify each original value before continuing.
 
@@ -99,10 +102,10 @@ never flood the service to manufacture a 429 response.
 <!-- prettier-ignore -->
 | ID | Scenario | Required result |
 | --- | --- | --- |
-| MT-19 | Plugin Setting → Update Data on a compatible target preflighted with Get Data | Save the exact data externally, then send only `merge_variables`; an independent Get Data shows the marker. Restore the exact backup and verify it independently. Do not use a Webhook Private Plugin or call this a render, Force Refresh, or device update. |
+| MT-19 | Plugin Setting → Update Data on a documented, correctly configured write target | Save the exact data externally, then send only the target's documented `merge_variables` schema. Treat the Update Data response as acknowledgement only: pass only when an independent Get Data contains the marker. A successful response that echoes the marker without persisted readback is a failure. Restore the exact backup and verify it independently. Do not use a Webhook Private Plugin or call this a render, Force Refresh, or device update. |
 | MT-21 | Plugin Setting → Write Markup, then restore | Literal content and preview show the temporary marker. Write the exact backup, then independently verify the restored source and marker-free preview. |
 | MT-23 | Playlist Item → Set Visibility, then restore | n8n output, a subsequent List, and the signed-in Playlist UI agree on both the temporary value and exact restored value. Do not claim a content push. |
-| MT-24 | Device → Update Sleep Mode, then restore | The request includes only the documented sleep fields. Device Get and the signed-in settings UI agree on the temporary and exact restored values. Physical behavior is a separate optional observation. |
+| MT-24 | Device → Update Sleep Mode, then restore | Use 15-minute values that the signed-in settings UI can represent. The Account API accepts integer minutes, but arbitrary minute values cannot be compared reliably with the portal selectors. The request includes only the documented sleep fields. Device Get and the signed-in settings UI agree on the temporary and exact restored values. Physical behavior is a separate optional observation. |
 
 Every write is a single attempt. If a step fails, stop and restore the target
 before diagnosing or changing code.

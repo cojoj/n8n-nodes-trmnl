@@ -197,7 +197,8 @@ describe('TRMNL node description', () => {
 					property.displayOptions?.show?.resource?.includes('pluginSetting'),
 			)
 			?.options?.find((option) => option.value === 'updateData');
-		assert.match(updateOperation?.description ?? '', /compatible Plugin Setting/);
+		assert.match(updateOperation?.description ?? '', /supported Plugin Setting/);
+		assert.match(json.description ?? '', /Calendar writes from TRMNL Companion/);
 	});
 
 	it('keeps saved Plugin Setting Liquid markup literal and explains write semantics', () => {
@@ -215,7 +216,11 @@ describe('TRMNL node description', () => {
 		assert.equal(markup.noDataExpression, true);
 		assert.match(markup.description ?? '', /saved to TRMNL unchanged/);
 		assert.ok(dataNotice);
-		assert.match(dataNotice.displayName, /only for Plugin Settings that support it/);
+		assert.match(dataNotice.displayName, /Plugin Settings and merge-variable schemas supported/);
+		assert.match(dataNotice.displayName, /successful response acknowledges the request/);
+		assert.match(dataNotice.displayName, /verify persistence with Get Data/);
+		assert.match(dataNotice.displayName, /Companion\/iPhone App provider/);
+		assert.match(dataNotice.displayName, /events array/);
 		assert.match(dataNotice.displayName, /Webhook Private Plugin/);
 		assert.match(dataNotice.displayName, /Private Plugin → Set\/Get Content/);
 		assert.match(dataNotice.displayName, /does not Force Refresh/);
