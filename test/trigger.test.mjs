@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
 import { TrmnlTrigger } from '../dist/nodes/Trmnl/TrmnlTrigger.node.js';
@@ -85,20 +84,6 @@ describe('TRMNL Trigger', () => {
 				{ default: 'headerAuth', version: [1.1] },
 			],
 		);
-	});
-
-	it('ships the Polling example on v1.1 with Header Auth selected', () => {
-		const workflow = JSON.parse(
-			readFileSync(
-				new URL('../examples/private-plugin-polling/polling-workflow.json', import.meta.url),
-				'utf8',
-			),
-		);
-		const triggerNode = workflow.nodes.find((node) => node.type === 'n8n-nodes-trmnl.trmnlTrigger');
-
-		assert.ok(triggerNode);
-		assert.equal(triggerNode.typeVersion, 1.1);
-		assert.equal(triggerNode.parameters.authentication, 'headerAuth');
 	});
 
 	it('keeps Polling guidance concise while documenting production requirements', () => {

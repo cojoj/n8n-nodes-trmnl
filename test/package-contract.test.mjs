@@ -10,10 +10,6 @@ import { describe, it } from 'node:test';
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(readFileSync(resolve(repositoryRoot, 'package.json'), 'utf8'));
 const n8nEntrypoints = [...packageJson.n8n.nodes, ...packageJson.n8n.credentials];
-const exampleWorkflows = [
-	'examples/private-plugin-dashboard/workflow.json',
-	'examples/private-plugin-polling/polling-workflow.json',
-];
 const releaseTag = process.env.RELEASE_TAG;
 
 function packPackage() {
@@ -168,28 +164,6 @@ describe('npm package contract', () => {
 		}
 	});
 
-	it('uses installable community-package node types in example workflows', () => {
-		const expectedNodeTypes = new Set([
-			`${packageJson.name}.trmnl`,
-			`${packageJson.name}.trmnlTrigger`,
-		]);
-
-		for (const workflowPath of exampleWorkflows) {
-			const workflow = JSON.parse(readFileSync(resolve(repositoryRoot, workflowPath), 'utf8'));
-			const communityNodeTypes = workflow.nodes
-				.map((node) => node.type)
-				.filter((nodeType) => nodeType.includes('trmnl'));
-
-			assert.ok(communityNodeTypes.length > 0, `${workflowPath} has no TRMNL node`);
-			for (const nodeType of communityNodeTypes) {
-				assert.ok(
-					expectedNodeTypes.has(nodeType),
-					`${workflowPath} uses an unrecognized TRMNL node type: ${nodeType}`,
-				);
-			}
-		}
-	});
-
 	it('packs and loads only the runtime package surface', () => {
 		const { cleanup, extractedPackageRoot, manifest, packedPackageJson } = packPackage();
 
@@ -216,7 +190,7 @@ describe('npm package contract', () => {
 				);
 			}
 
-			for (const excludedPrefix of ['credentials/', 'examples/', 'nodes/', 'test/']) {
+			for (const excludedPrefix of ['credentials/', 'nodes/', 'test/']) {
 				assert.equal(
 					packedPaths.some((path) => path.startsWith(excludedPrefix)),
 					false,

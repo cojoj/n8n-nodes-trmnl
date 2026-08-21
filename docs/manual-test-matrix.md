@@ -34,10 +34,9 @@ layers.
 
 2. Install the packed or published candidate in a fresh supported n8n user
    folder. Record the package, Node.js, and n8n versions.
-3. Import both workflows from `examples/` at the exact candidate commit or tag;
-   do not use the moving `main` branch as candidate evidence. They must resolve
-   `n8n-nodes-trmnl.trmnl` and `n8n-nodes-trmnl.trmnlTrigger`; an unknown-node
-   placeholder is a failure.
+3. Create fresh action and Polling workflows using the installed candidate.
+   They must resolve `n8n-nodes-trmnl.trmnl` and
+   `n8n-nodes-trmnl.trmnlTrigger`; an unknown-node placeholder is a failure.
 4. Use a disposable Webhook Private Plugin and unique run marker. Do not test
    destructive merge behavior against production data.
 5. Use dedicated, temporary credentials. Never retain API keys, Webhook URLs,

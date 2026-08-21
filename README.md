@@ -74,25 +74,23 @@ Polling without authentication unless the workflow is deliberately public.
 ## Quick Start: Webhook Content
 
 1. In TRMNL, create a Private Plugin with the **Webhook** strategy.
-2. Paste [the example Liquid markup](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/examples/private-plugin-dashboard/markup-full.liquid)
-   into its Full layout.
-3. Create a **TRMNL Private Plugin API** credential in n8n.
-4. Import [the Webhook example workflow](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/examples/private-plugin-dashboard/workflow.json).
-5. Select the credential on the TRMNL node and execute it.
+2. Create a **TRMNL Private Plugin API** credential in n8n.
+3. Add a TRMNL node, select **Private Plugin** and **Set Content**, and choose
+   the credential.
+4. Add merge variables with **Using Fields Below**, or use **Using JSON** for
+   nested objects and arrays.
+5. Execute the node and reference those variables from the Private Plugin's
+   Liquid markup.
 6. Confirm the stored data and preview in TRMNL, then wait for the device's next
    refresh if physical-device delivery matters.
 
-The example's [README](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/examples/private-plugin-dashboard/README.md) explains the
-smallest verified setup. Use **Using Fields Below** for simple typed values and
-expressions, or **Using JSON** for nested objects and arrays.
-
 ## Polling
 
-Import [the Polling example](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/examples/private-plugin-polling/polling-workflow.json),
-activate it, and paste the TRMNL Trigger's production URL into the Private
-Plugin's Polling URL. The production webhook must be publicly reachable over
-HTTPS, the HTTP verb must match, and the workflow should stay fast because the
-response is synchronous.
+Add a **TRMNL Trigger**, connect it to a workflow that returns one root JSON
+object, activate the workflow, and paste the trigger's production URL into the
+Private Plugin's Polling URL. The production webhook must be publicly reachable
+over HTTPS, the HTTP verb must match, and the workflow should stay fast because
+the response is synchronous.
 
 Header Auth is recommended. Enter the same pair in TRMNL Polling Headers as
 `Name: Value` or `name=value`. Rejected credentials return HTTP 401 before a
@@ -142,8 +140,6 @@ Stable GitHub Releases are the only publication trigger; see the
 - [Contributing](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/CONTRIBUTING.md)
 - [Security policy](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/SECURITY.md)
 - [Manual release-candidate checks](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/manual-test-matrix.md)
-- [Webhook example](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/examples/private-plugin-dashboard/README.md)
-- [Polling example](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/examples/private-plugin-polling/README.md)
 - [Brand asset provenance](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/brand-assets.md)
 - [TRMNL API documentation](https://docs.trmnl.com/go)
 - [TRMNL OpenAPI specification](https://trmnl.com/api-docs/openapi.yaml)
