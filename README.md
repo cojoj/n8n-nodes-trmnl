@@ -95,8 +95,9 @@ The workflow data does not contain the incoming headers.
 ## Compatibility
 
 Existing node names, credential names, parameters, versions, and saved-workflow
-behavior are compatibility contracts. CI tests Node.js 22 and the current LTS.
-A scheduled workflow checks the latest n8n runtime and tools.
+behavior are compatibility contracts. CI tests Node.js 22, the current LTS,
+and Node.js 26. A scheduled workflow checks the latest n8n runtime and tools
+on the current LTS and Node.js 26.
 
 Automated checks do not prove hosted TRMNL or physical-device behavior. Use the
 [manual test matrix](https://github.com/cojoj/n8n-nodes-trmnl/blob/main/docs/manual-test-matrix.md)
@@ -104,7 +105,9 @@ for live validation.
 
 ## Development
 
-Use the Node.js LTS release and pnpm version declared by the repository:
+Use Node.js 26 for development and the pnpm version declared in `package.json`.
+The `mise.toml` and `mise.lock` files configure the local development runtime.
+Publishing uses the current Node.js LTS release.
 
 ```bash
 corepack enable

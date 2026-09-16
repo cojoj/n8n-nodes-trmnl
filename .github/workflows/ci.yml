@@ -27,6 +27,8 @@ jobs:
             quality: false
           - node-version: 'lts/*'
             quality: true
+          - node-version: '26'
+            quality: false
 
     steps:
       - name: Checkout

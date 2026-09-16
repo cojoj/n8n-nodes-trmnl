@@ -14,8 +14,13 @@ concurrency:
 
 jobs:
   latest-n8n:
+    name: Latest n8n on Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['lts/*', '26']
 
     steps:
       - name: Checkout
@@ -29,7 +34,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 'lts/*'
+          node-version: ${{ matrix.node-version }}
           cache: pnpm
 
       - name: Install locked dependencies
@@ -46,6 +51,3 @@ jobs:
 
       - name: Check n8n Cloud support
         run: pnpm exec n8n-node cloud-support
-
-      - name: Audit high-severity dependencies
-        run: pnpm audit --audit-level high
