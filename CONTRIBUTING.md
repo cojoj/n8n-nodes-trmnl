@@ -13,8 +13,9 @@ fixes, tests, documentation changes, and node operations.
 
 ## Development Setup
 
-Use the current Node.js LTS release and the pnpm version declared in
-`package.json`.
+Use Node.js 26 and the pnpm version declared in `package.json`. If you use mise,
+run `mise install` to install the versions in `mise.lock`. CI also checks the
+current Node.js LTS release and Node.js 22. Publishing uses the current LTS.
 
 ```bash
 corepack enable
@@ -57,6 +58,30 @@ pnpm audit
 Keep each dependency change small. Examine the manifest and lockfile changes.
 Remove overrides that are not necessary. Run all package checks. Examine major
 updates and security fixes in different pull requests.
+
+The `Dependency Security` workflow audits the committed lockfile and a temporary
+lockfile with the latest n8n runtime and tooling. It runs on pull requests, pushes
+to `main`, and each day. High and critical findings fail the audit. Registry
+errors also fail the audit; they do not count as a successful security check.
+The daily compatibility workflow reports build, test, and lint results. CI also
+keeps its existing audit step so its security gate stays in place.
+
+Run `pnpm audit` without a severity filter to examine all findings. Do not force
+a transitive dependency across major versions only to clear an advisory.
+
+### Open upstream advisory
+
+As of 2026-09-16, the development toolchain includes `stream-json@1.9.1` through
+`@n8n/node-cli` and `@n8n/backend-common`. This version is reported by
+[GHSA-528h-pc64-c93x](https://github.com/advisories/GHSA-528h-pc64-c93x)
+at moderate severity. The fixed release is 3.5.0. There is no patched 1.x release.
+
+In the committed dependency tree, `@n8n/backend-common` uses the parser and
+`Assembler` in `utils/flatted-async.js`. It does not use the affected path
+filters. The TRMNL package has no runtime dependencies and does not pack this
+development toolchain. Keep the advisory visible. Recheck the dependency path
+and API use when n8n tooling changes, and update when a compatible fix is
+available.
 
 ## Tests and Fixtures
 
