@@ -11,10 +11,10 @@ allowBuilds:
 minimumReleaseAge: 360
 
 overrides:
-  'axios@>=1.0.0 <1.18.0': ^1.18.0
-  'brace-expansion@<1.1.18': ^1.1.18
-  'brace-expansion@>=2.0.0 <2.1.4': ^2.1.4
-  'brace-expansion@>=5.0.0 <5.0.9': ^5.0.9
+  'axios@>=1.0.0 <1.20.0': ^1.20.0
+  'brace-expansion@<1.1.20': ^1.1.20
+  'brace-expansion@>=2.0.0 <2.1.6': ^2.1.6
+  'brace-expansion@>=5.0.0 <5.0.11': ^5.0.11
   'form-data@>=4.0.0 <4.0.6': ^4.0.6
   'ip-address@<=10.3.0': ^10.3.1
   'js-yaml@>=4.0.0 <4.3.2': ^4.3.2
