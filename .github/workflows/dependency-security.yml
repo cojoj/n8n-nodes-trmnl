@@ -42,11 +42,15 @@ jobs:
           package-manager-cache: false
 
       - name: Validate the committed lockfile
-        run: pnpm install --frozen-lockfile --lockfile-only --ignore-scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Resolve the latest n8n runtime and tooling
         if: matrix.dependencies == 'latest-n8n'
         run: pnpm update --latest n8n-workflow @n8n/node-cli --lockfile-only --ignore-scripts
+
+      - name: Validate the latest n8n lockfile
+        if: matrix.dependencies == 'latest-n8n'
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Audit high-severity dependencies
         run: pnpm audit --audit-level high
