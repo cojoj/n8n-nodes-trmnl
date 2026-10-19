@@ -61,27 +61,55 @@ updates and security fixes in different pull requests.
 
 The `Dependency Security` workflow audits the committed lockfile and a temporary
 lockfile with the latest n8n runtime and tooling. It runs on pull requests, pushes
-to `main`, and each day. High and critical findings fail the audit. Registry
-errors also fail the audit; they do not count as a successful security check.
+to `main`, and each day. It installs each dependency set with
+`--frozen-lockfile --ignore-scripts` before the audit. A lockfile-only check does
+not detect all missing dependency entries. Do not edit lockfile entries by hand.
+High and critical findings fail the audit, except for the single documented
+exception below. Registry errors also fail the audit; they do not count as a
+successful security check.
 The daily compatibility workflow reports build, test, and lint results. CI also
 keeps its existing audit step so its security gate stays in place.
 
 Run `pnpm audit` without a severity filter to examine all findings. Do not force
 a transitive dependency across major versions only to clear an advisory.
 
-### Open upstream advisory
+### Open upstream advisories
 
-As of 2026-09-16, the development toolchain includes `stream-json@1.9.1` through
-`@n8n/node-cli` and `@n8n/backend-common`. This version is reported by
-[GHSA-528h-pc64-c93x](https://github.com/advisories/GHSA-528h-pc64-c93x)
-at moderate severity. The fixed release is 3.5.0. There is no patched 1.x release.
+As of 2026-10-19, the development toolchain includes `stream-json@1.9.1` through
+`@n8n/node-cli` and `@n8n/backend-common`. This version has three moderate findings:
+
+- Path filter handling:
+  [GHSA-528h-pc64-c93x](https://github.com/advisories/GHSA-528h-pc64-c93x)
+- JSONC comment parsing:
+  [GHSA-hqr4-qq8f-hg3x](https://github.com/advisories/GHSA-hqr4-qq8f-hg3x)
+- Prototype pollution in `Assembler`:
+  [GHSA-mjw6-4jj6-33hc](https://github.com/advisories/GHSA-mjw6-4jj6-33hc)
+
+The audit requires 3.6.0 or later to address all three findings. There is no
+patched 1.x release.
 
 In the committed dependency tree, `@n8n/backend-common` uses the parser and
 `Assembler` in `utils/flatted-async.js`. It does not use the affected path
-filters. The TRMNL package has no runtime dependencies and does not pack this
-development toolchain. Keep the advisory visible. Recheck the dependency path
-and API use when n8n tooling changes, and update when a compatible fix is
-available.
+filters, but it does use the component named in the `Assembler` advisory.
+The TRMNL package has no runtime dependencies and does not pack this development
+toolchain. Keep these advisories visible. Recheck the dependency path and API use
+when n8n tooling changes, and update when a compatible fix is available.
+
+The development toolchain also includes `braces@3.0.3` through
+`fast-glob` and `micromatch`. Its high-severity finding is
+[GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm).
+There is no published fix as of 2026-10-19. The audit suggests 3.0.4, but that
+version is not in the registry. The n8n build and template commands use fixed
+glob patterns; TypeScript and lint use repository configuration. These paths
+do not process TRMNL workflow input.
+
+The `audit.ignore` list in `pnpm-workspace.yaml` excludes only this advisory.
+This is a temporary risk acceptance for development tooling, not a fix. All other
+high and critical findings still fail the security gate. Recheck this exception
+when n8n tooling or glob configuration changes. Remove it when a compatible fix
+is available or the affected dependency is removed. If these tools start to
+process untrusted glob patterns, reassess the risk before use. To inspect the
+excluded finding, run `pnpm audit` in a temporary copy without this ignore entry.
 
 ## Tests and Fixtures
 
